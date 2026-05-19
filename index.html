@@ -2808,6 +2808,15 @@ function toggleTheme() {
   const isLight = document.body.classList.contains('light');
   const btn = document.getElementById('theme-btn-topbar');
   if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('iron_log_theme', isLight ? 'light' : 'dark');
+}
+
+function restoreTheme() {
+  if (localStorage.getItem('iron_log_theme') === 'light') {
+    document.body.classList.add('light');
+    const btn = document.getElementById('theme-btn-topbar');
+    if (btn) btn.textContent = '☀️';
+  }
 }
 
 // ═══════════════════════ MODAL ═══════════════════════
@@ -3838,10 +3847,24 @@ function handleImport(e) {
     try {
       const parsed = JSON.parse(ev.target.result);
       if (!Array.isArray(parsed.sessions)) throw new Error('Invalid format');
-      showConfirm('Import Data', `Import ${parsed.sessions.length} sessions? This will MERGE with your existing data.`, () => {
+      const newBW = Array.isArray(parsed.bwLog) ? parsed.bwLog : [];
+      const newTpl = Array.isArray(parsed.templates) ? parsed.templates : [];
+      const newCI = Array.isArray(parsed.checkins) ? parsed.checkins : [];
+      const newWalk = parsed.walkData || null;
+      const parts = [
+        `${parsed.sessions.length} sessions`,
+        newBW.length ? `${newBW.length} weight entries` : '',
+        newTpl.length ? `${newTpl.length} templates` : '',
+        newCI.length ? `${newCI.length} check-ins` : '',
+      ].filter(Boolean).join(', ');
+      showConfirm('Import Data', `Import ${parts}? This will MERGE with your existing data.`, () => {
         const existingIds = new Set(state.sessions.map(s => s.id));
         const newSessions = parsed.sessions.filter(s => !existingIds.has(s.id));
         state.sessions = [...state.sessions, ...newSessions];
+        if (newBW.length) { const ex = new Set(bwLog.map(e => e.date)); bwLog = [...bwLog, ...newBW.filter(e => !ex.has(e.date))]; }
+        if (newTpl.length) { const ex = new Set(templates.map(t => t.id)); templates = [...templates, ...newTpl.filter(t => !ex.has(t.id))]; }
+        if (newCI.length) { const ex = new Set(checkins.map(c => c.weekStart)); checkins = [...checkins, ...newCI.filter(c => !ex.has(c.weekStart))]; }
+        if (newWalk?.log) walkData.log = { ...walkData.log, ...newWalk.log };
         saveData();
         renderDashboard();
         showToast(`Imported ${newSessions.length} new sessions!`, 'success');
@@ -5113,6 +5136,7 @@ function confirmExcelImport() {
 
 // ═══════════════════════ INIT ═══════════════════════
 async function initApp() {
+  restoreTheme();
   await loadData();
   if (!exerciseLib.length) { exerciseLib = DEFAULT_EXERCISE_LIB.map(e => ({...e})); }
   seedDemoData();
@@ -5780,7 +5804,7 @@ async function forcePushToCloud(){
   if(ok){_lastSyncedAt=new Date();updateSyncBadge('online');showToast('All data pushed to cloud!','success');}
   else{updateSyncBadge('error');showToast('Push partially failed — check console. Run SQL setup if tables are missing.','error');}
 }
-setInterval(async()=>{if(!_syncEnabled||!_supaUser)return;const ok=await sbSetSessions(state.sessions)&&await sbSet('iron_bwlog',bwLog);if(ok){_lastSyncedAt=new Date();updateSyncBadge('online');}else updateSyncBadge('error');},5*60*1000);
+setInterval(async()=>{if(!_syncEnabled||!_supaUser)return;const results=await Promise.all([sbSetSessions(state.sessions),sbSet('iron_bwlog',bwLog),sbSet('iron_templates',templates),sbSet('iron_checkins',checkins),sbSet('iron_walkdata',walkData),sbSet('iron_exerciselib',exerciseLib)]);const ok=results.every(Boolean);if(ok){_lastSyncedAt=new Date();updateSyncBadge('online');}else updateSyncBadge('error');},5*60*1000);
 if(window.electronAPI?.onMenuPushCloud){window.electronAPI.onMenuPushCloud(()=>forcePushToCloud());window.electronAPI.onMenuPullCloud(()=>pullFromSupabase());}
 (async()=>{try{const{data:{session}}=await supa.auth.getSession();if(session?.user){_supaUser=session.user;await onSignedIn();}}catch(e){console.warn('getSession:',e);}})();
 
