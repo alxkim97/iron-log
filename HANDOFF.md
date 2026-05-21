@@ -1,6 +1,6 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-19 (Condo PC)
+**Last updated:** 2026-05-21 (Company PC)
 **Current version:** v1.4.1
 **Branch:** main
 
@@ -41,7 +41,20 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 
 ---
 
-## What was done this session (2026-05-19, Condo PC)
+## What was done this session (2026-05-21, Company PC)
+
+### Setup & housekeeping (no version bump)
+
+- Cloned repo via GitHub Desktop to `Claude Code\iron-log\` (lowercase) — correct permanent path
+- Ran `npm install` to restore `node_modules` after fresh clone (fixes "electron not recognized")
+- `package-lock.json` committed — future clones on any PC just need `npm install` to run
+- Removed duplicate iron-log entries from GitHub Desktop sidebar
+- Created `GIT_GUIDE.md` — plain-English git troubleshooting reference with full timeline of auth issues
+- Confirmed git setup: all push/pull via GitHub Desktop (OAuth), never CLI `git push` (403 on this account)
+
+---
+
+## Previous session (2026-05-19, Condo PC)
 
 ### Bug fixes (v1.4.1)
 
@@ -79,11 +92,10 @@ Complete rebuild from v1.3.0. Major additions:
 
 ## What to continue next session
 
-1. **Test cloud sync** — sign in on company PC, verify all 6 tables sync correctly after v1.4.1
+1. **Test cloud sync** — sign in, verify all 6 tables sync correctly
 2. **Test import restore** — export backup, clear data, re-import → check bwLog/templates/checkins/walkData all come back
 3. **Feature ideas (priority order):**
    - Plate calculator — input target weight, show plates to load per side
-   - Nutrition / calorie burn estimate per session (based on duration + volume)
    - Rest timer — countdown between sets with audio cue
    - Body measurements tracker (waist, chest, arms etc.)
    - Dark/light theme pill moved to topbar (currently sidebar-only)
@@ -99,13 +111,14 @@ When you type **"git push"** to Claude Code:
 4. Pushes to GitHub (`origin/main`)
 5. Returns the handoff prompt for the other PC
 
-## How to continue on company PC
+## How to continue on another PC
 
-Paste this into a new Claude Code session after pulling latest:
+**Step 1 — Pull latest via GitHub Desktop** (Fetch origin → Pull)
+**Step 2 — Run `npm install`** in the iron-log folder (only needed after a fresh clone)
+**Step 3 — Paste this into a new Claude Code session:**
 
 ```
-Continue Iron Log development. Pull latest from GitHub first.
-Read HANDOFF.md for full session context. Current version: v1.4.1.
+Continue Iron Log development. Read HANDOFF.md for full context. Current version: v1.4.1.
 
 Key facts:
 - Electron 28, vanilla HTML/CSS/JS, single-file renderer (index.html ~5800 lines)
@@ -113,7 +126,7 @@ Key facts:
 - Supabase cloud sync: 6 tables (iron_sessions, iron_bwlog, iron_templates, iron_checkins, iron_walkdata, iron_exerciselib)
 - Local data: ~/Documents/IronLog/ironlog-data.json
 - Run: npm start | Build: npm run build
+- Git: push/pull via GitHub Desktop ONLY (CLI git push gives 403 on this account)
 
-Last fixed: theme persistence, full auto-sync interval, import restoring all data stores.
-Pending: plate calculator, rest timer, body measurements tracker.
+Pending features: plate calculator, rest timer, body measurements tracker.
 ```
