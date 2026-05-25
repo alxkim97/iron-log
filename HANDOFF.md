@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
 **Last updated:** 2026-05-25 (Company PC)
-**Current version:** v1.5.0
+**Current version:** v1.5.1
 **Branch:** main
 
 ---
@@ -42,6 +42,14 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 ---
 
 ## What was done this session (2026-05-25, Company PC)
+
+### Bug fix (v1.5.1)
+
+**Sync badge showing email instead of display name:**
+- Race condition: Supabase `getSession()` resolves before `initApp()` finishes loading local data, so `displayName` was still `''` when `updateSyncBadge('online')` first fired
+- Fix: added `if (_supaUser) updateSyncBadge('online')` at the end of `initApp()`, after data is fully loaded — badge now always shows saved display name (e.g. "Alex Kim") on startup
+
+---
 
 ### UI overhaul + bug fixes (v1.5.0)
 
@@ -137,6 +145,6 @@ Key facts:
 - Run: npm start | Build: npm run build
 - Git: push/pull via GitHub Desktop ONLY (CLI git push gives 403 on this account)
 
-Last done: 4 UI theme variants (Volt/Iron/Cobalt/Forge), NutriLog-inspired design upgrades, bug fixes (more menu dark theme, display name save, duration display, layout width).
+Last done: Fixed sync badge showing email instead of display name (race condition — badge now refreshes after local data loads in initApp).
 Pending features: plate calculator, rest timer, body measurements tracker.
 ```
