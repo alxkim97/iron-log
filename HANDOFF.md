@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-21 (Company PC)
-**Current version:** v1.4.1
+**Last updated:** 2026-05-25 (Company PC)
+**Current version:** v1.5.0
 **Branch:** main
 
 ---
@@ -41,16 +41,26 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 
 ---
 
-## What was done this session (2026-05-21, Company PC)
+## What was done this session (2026-05-25, Company PC)
 
-### Setup & housekeeping (no version bump)
+### UI overhaul + bug fixes (v1.5.0)
 
-- Cloned repo via GitHub Desktop to `Claude Code\iron-log\` (lowercase) — correct permanent path
-- Ran `npm install` to restore `node_modules` after fresh clone (fixes "electron not recognized")
-- `package-lock.json` committed — future clones on any PC just need `npm install` to run
-- Removed duplicate iron-log entries from GitHub Desktop sidebar
-- Created `GIT_GUIDE.md` — plain-English git troubleshooting reference with full timeline of auth issues
-- Confirmed git setup: all push/pull via GitHub Desktop (OAuth), never CLI `git push` (403 on this account)
+**Theme system (NutriLog-inspired):**
+- 4 color variants: Volt (yellow, default) · Iron (silver/gunmetal) · Cobalt (electric blue) · Forge (ember orange)
+- Each variant works in both dark and light mode
+- Gradient sidebar background per variant in dark mode
+- Logo icon box now uses gradient fill + glow shadow
+- Primary button upgraded to gradient (accent → accent2) with hover lift
+- Modal overlays get `backdrop-filter: blur(4px)` for depth
+- Light mode cards get box-shadow for depth (was flat before)
+- Variant picker added to Settings → Appearance; persists to localStorage
+
+**Bug fixes:**
+- More menu (··· More) was white in dark mode — `.em-item` CSS was scoped to export menu only, now covers both
+- Display name not saving — input had no `onchange` handler; now auto-saves on change
+- Sync badge showing email instead of display name — was checking `_syncEnabled` instead of `_supaUser`
+- Duration column showing "5933 min" (Excel import read wrong cell) — display now hides values > 300 as `—`; import capped at 300
+- Settings and Exercise Library had unused right-side space — max-width increased to 1200px
 
 ---
 
@@ -98,7 +108,6 @@ Complete rebuild from v1.3.0. Major additions:
    - Plate calculator — input target weight, show plates to load per side
    - Rest timer — countdown between sets with audio cue
    - Body measurements tracker (waist, chest, arms etc.)
-   - Dark/light theme pill moved to topbar (currently sidebar-only)
 
 ---
 
@@ -128,5 +137,6 @@ Key facts:
 - Run: npm start | Build: npm run build
 - Git: push/pull via GitHub Desktop ONLY (CLI git push gives 403 on this account)
 
+Last done: 4 UI theme variants (Volt/Iron/Cobalt/Forge), NutriLog-inspired design upgrades, bug fixes (more menu dark theme, display name save, duration display, layout width).
 Pending features: plate calculator, rest timer, body measurements tracker.
 ```

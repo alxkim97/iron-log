@@ -174,6 +174,99 @@
   }
   .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* ── UI VARIANTS ── */
+  body[data-variant="iron"]:not(.light) {
+    --bg:#0c0d10; --surface:#141618; --surface2:#1a1d21; --surface3:#20242a;
+    --border:#282c34; --border2:#32373f;
+    --accent:#a0aaba; --accent2:#8090a8; --accent-dim:rgba(160,170,186,0.12); --accent-dim2:rgba(160,170,186,0.06);
+    --text:#eef0f3; --text2:#8090a0; --text3:#4a5464;
+  }
+  body[data-variant="iron"].light {
+    --bg:#f0f2f5; --surface:#ffffff; --surface2:#e8ecf0; --surface3:#dde2e8;
+    --border:#ccd2da; --border2:#b8c0cc;
+    --accent:#4a5568; --accent2:#374151; --accent-dim:rgba(74,85,104,0.1); --accent-dim2:rgba(74,85,104,0.05);
+    --text:#1a2030; --text2:#4a5568; --text3:#8090a8;
+    --red:#c0392b; --red-dim:rgba(192,57,43,0.08);
+    --green:#1a8a4a; --green-dim:rgba(26,138,74,0.08);
+    --blue:#2563eb; --blue-dim:rgba(37,99,235,0.08);
+  }
+  body[data-variant="cobalt"]:not(.light) {
+    --bg:#080c14; --surface:#0e1420; --surface2:#141c2c; --surface3:#1a2436;
+    --border:#1e2d44; --border2:#283d58;
+    --accent:#3b82f6; --accent2:#2563eb; --accent-dim:rgba(59,130,246,0.14); --accent-dim2:rgba(59,130,246,0.07);
+    --text:#e8f0ff; --text2:#7090c0; --text3:#3a5070;
+    --green:#34d399; --green-dim:rgba(52,211,153,0.1);
+  }
+  body[data-variant="cobalt"].light {
+    --bg:#f0f4ff; --surface:#ffffff; --surface2:#e8eeff; --surface3:#dde5ff;
+    --border:#c8d8f8; --border2:#b0c8f0;
+    --accent:#1d4ed8; --accent2:#1e40af; --accent-dim:rgba(29,78,216,0.1); --accent-dim2:rgba(29,78,216,0.05);
+    --text:#0a1628; --text2:#3050a0; --text3:#7090c0;
+    --red:#dc2626; --red-dim:rgba(220,38,38,0.08);
+    --green:#16a34a; --green-dim:rgba(22,163,74,0.08);
+  }
+  body[data-variant="forge"]:not(.light) {
+    --bg:#0f0a08; --surface:#16100c; --surface2:#1e1610; --surface3:#261c14;
+    --border:#302010; --border2:#402a18;
+    --accent:#f97316; --accent2:#ea580c; --accent-dim:rgba(249,115,22,0.14); --accent-dim2:rgba(249,115,22,0.07);
+    --text:#faf0e8; --text2:#c08060; --text3:#604030;
+  }
+  body[data-variant="forge"].light {
+    --bg:#fff8f0; --surface:#ffffff; --surface2:#fff0e4; --surface3:#ffe8d4;
+    --border:#f0d0b0; --border2:#e0b888;
+    --accent:#c2410c; --accent2:#9a3412; --accent-dim:rgba(194,65,12,0.1); --accent-dim2:rgba(194,65,12,0.05);
+    --text:#1e0e04; --text2:#804828; --text3:#b07040;
+    --red:#b91c1c; --red-dim:rgba(185,28,28,0.08);
+    --green:#15803d; --green-dim:rgba(21,128,61,0.08);
+  }
+
+  /* ── GRADIENT SIDEBAR (dark mode per variant) ── */
+  body:not(.light) #sidebar { background: linear-gradient(175deg, #181a1f 0%, var(--bg) 100%); }
+  body[data-variant="iron"]:not(.light) #sidebar { background: linear-gradient(175deg, #16181e 0%, #0c0d10 100%); }
+  body[data-variant="cobalt"]:not(.light) #sidebar { background: linear-gradient(175deg, #0a1226 0%, #080c14 100%); }
+  body[data-variant="forge"]:not(.light) #sidebar { background: linear-gradient(175deg, #1c1208 0%, #0f0a08 100%); }
+
+  /* ── LOGO ICON GRADIENT ── */
+  body:not(.light) .app-icon {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--orange) 100%);
+    border: none;
+    box-shadow: 0 2px 10px var(--accent-dim);
+  }
+  body[data-variant="cobalt"]:not(.light) .app-icon { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); }
+  body[data-variant="iron"]:not(.light) .app-icon { background: linear-gradient(135deg, #60738a 0%, #a0b0c0 100%); }
+  body[data-variant="forge"]:not(.light) .app-icon { background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); }
+
+  /* ── GRADIENT ACCENT BUTTON ── */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: #0e0f11;
+  }
+  .btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-dim); }
+  body[data-variant="cobalt"] .btn-primary { color: #fff; }
+  body[data-variant="cobalt"] .btn-primary:hover { box-shadow: 0 4px 16px rgba(59,130,246,0.35); }
+  body[data-variant="forge"] .btn-primary { color: #fff; }
+
+  /* ── NAV ACTIVE: inset left-bar via box-shadow ── */
+  .nav-btn.active { box-shadow: inset 3px 0 0 var(--accent); }
+  body:not(.light) .nav-btn.active { background: var(--accent-dim); }
+
+  /* ── MODAL BACKDROP BLUR ── */
+  .modal-overlay { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+  /* ── LIGHT MODE CARD DEPTH ── */
+  .light .card, .light .stat-card, .light .streak-widget, .light .bw-widget,
+  .light .tpl-item, .light .exercise-block { box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); }
+
+  /* ── VARIANT SWATCH CARDS ── */
+  .variant-swatch {
+    background: none; border: 2px solid var(--border); border-radius: 10px;
+    padding: 10px; cursor: pointer; transition: all 0.18s ease;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--text2); font-family: 'DM Sans', sans-serif;
+  }
+  .variant-swatch:hover { border-color: var(--border2); color: var(--text); }
+  .variant-swatch.active { border-color: var(--accent); color: var(--accent); }
+
   /* ── MAIN ── */
   #main {
     flex: 1;
@@ -1537,9 +1630,9 @@
   .export-drop-wrap { position:relative;display:inline-flex; }
   .export-menu { display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:6px;min-width:200px;box-shadow:var(--shadow-lg);z-index:400; }
   .export-menu.open { display:block; }
-  .export-menu .em-item { display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:0.8125rem;cursor:pointer;text-align:left;transition:all var(--transition); }
-  .export-menu .em-item:hover { background:var(--surface2);color:var(--text); }
-  .export-menu .em-sep { height:1px;background:var(--border);margin:4px 0; }
+  .export-menu .em-item, .more-menu .em-item { display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:0.8125rem;cursor:pointer;text-align:left;transition:all var(--transition); }
+  .export-menu .em-item:hover, .more-menu .em-item:hover { background:var(--surface2);color:var(--text); }
+  .export-menu .em-sep, .more-menu .em-sep { height:1px;background:var(--border);margin:4px 0; }
 
   /* ── MORE DROPDOWN ── */
   .more-drop-wrap { position:relative;display:inline-flex; }
@@ -1739,7 +1832,7 @@
     </button>
   </div>
   <div class="sidebar-bottom">
-    <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text3)">v1.4.1</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text3)">v1.5.0</div>
   </div>
 </nav>
 
@@ -2048,7 +2141,53 @@
   </div>
   <!-- SETTINGS PAGE -->
   <div id="page-settings" class="page">
-    <div style="max-width:860px">
+    <div style="max-width:1200px">
+
+      <!-- Appearance / Variants -->
+      <div class="settings-section-title">🎨 Appearance</div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-body">
+          <div style="font-size:0.8rem;color:var(--text2);margin-bottom:14px">Color theme — applies to both dark &amp; light mode</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:540px" id="variant-grid">
+            <button class="variant-swatch active" data-v="volt" onclick="applyVariant('volt')">
+              <div style="width:100%;border-radius:6px;overflow:hidden;border:1px solid #2a2d35;display:flex;height:40px;">
+                <div style="flex:1;background:#0e0f11;padding:6px;"><div style="height:3px;background:#e8ff47;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#2a2d35;border-radius:1px;width:85%;"></div></div>
+                <div style="width:1px;background:#cdd0d8;"></div>
+                <div style="flex:1;background:#f4f5f7;padding:6px;"><div style="height:3px;background:#3d7a00;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#dde0e8;border-radius:1px;width:85%;"></div></div>
+              </div>
+              <div style="font-size:11px;font-weight:600;">Volt</div>
+              <div style="font-size:9px;opacity:.6;">Yellow · default</div>
+            </button>
+            <button class="variant-swatch" data-v="iron" onclick="applyVariant('iron')">
+              <div style="width:100%;border-radius:6px;overflow:hidden;border:1px solid #282c34;display:flex;height:40px;">
+                <div style="flex:1;background:#0c0d10;padding:6px;"><div style="height:3px;background:#a0aaba;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#282c34;border-radius:1px;width:85%;"></div></div>
+                <div style="width:1px;background:#ccd2da;"></div>
+                <div style="flex:1;background:#f0f2f5;padding:6px;"><div style="height:3px;background:#4a5568;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#ccd2da;border-radius:1px;width:85%;"></div></div>
+              </div>
+              <div style="font-size:11px;font-weight:600;">Iron</div>
+              <div style="font-size:9px;opacity:.6;">Silver · neutral</div>
+            </button>
+            <button class="variant-swatch" data-v="cobalt" onclick="applyVariant('cobalt')">
+              <div style="width:100%;border-radius:6px;overflow:hidden;border:1px solid #1e2d44;display:flex;height:40px;">
+                <div style="flex:1;background:#080c14;padding:6px;"><div style="height:3px;background:#3b82f6;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#1e2d44;border-radius:1px;width:85%;"></div></div>
+                <div style="width:1px;background:#c8d8f8;"></div>
+                <div style="flex:1;background:#f0f4ff;padding:6px;"><div style="height:3px;background:#1d4ed8;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#c8d8f8;border-radius:1px;width:85%;"></div></div>
+              </div>
+              <div style="font-size:11px;font-weight:600;">Cobalt</div>
+              <div style="font-size:9px;opacity:.6;">Blue · electric</div>
+            </button>
+            <button class="variant-swatch" data-v="forge" onclick="applyVariant('forge')">
+              <div style="width:100%;border-radius:6px;overflow:hidden;border:1px solid #302010;display:flex;height:40px;">
+                <div style="flex:1;background:#0f0a08;padding:6px;"><div style="height:3px;background:#f97316;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#302010;border-radius:1px;width:85%;"></div></div>
+                <div style="width:1px;background:#f0d0b0;"></div>
+                <div style="flex:1;background:#fff8f0;padding:6px;"><div style="height:3px;background:#c2410c;border-radius:2px;width:70%;margin-bottom:4px;"></div><div style="height:2px;background:#f0d0b0;border-radius:1px;width:85%;"></div></div>
+              </div>
+              <div style="font-size:11px;font-weight:600;">Forge</div>
+              <div style="font-size:9px;opacity:.6;">Orange · ember</div>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Storage summary -->
       <div class="settings-section-title">📦 Data Overview</div>
@@ -2105,14 +2244,14 @@
             <div class="settings-row-label">Display Name</div>
             <div class="settings-row-sub">Your name shown in the app</div>
           </div>
-          <input type="text" class="form-input" id="display-name-input" placeholder="e.g. Alex" style="width:180px">
+          <input type="text" class="form-input" id="display-name-input" placeholder="e.g. Alex" style="width:180px" onchange="saveDisplayName()">
         </div>
         <div class="settings-row">
           <div>
             <div class="settings-row-label">Default Program</div>
             <div class="settings-row-sub">Pre-selected program/day for new sessions</div>
           </div>
-          <select class="form-input" id="default-program" style="width:180px">
+          <select class="form-input" id="default-program" style="width:180px" onchange="saveTrainingDefaults()">
             <option value="">None</option>
             <option>Push</option><option>Pull</option><option>Legs</option>
             <option>Upper</option><option>Arms</option><option>Other</option>
@@ -2123,7 +2262,7 @@
             <div class="settings-row-label">Default Duration (min)</div>
             <div class="settings-row-sub">Pre-filled duration for new sessions</div>
           </div>
-          <input type="number" class="form-input" id="default-duration" min="1" max="300" placeholder="e.g. 60" style="width:180px">
+          <input type="number" class="form-input" id="default-duration" min="1" max="300" placeholder="e.g. 60" style="width:180px" onchange="saveTrainingDefaults()">
         </div>
         <div class="settings-row">
           <div>
@@ -2203,7 +2342,7 @@
       <div class="card">
         <div class="settings-row">
           <div><div class="settings-row-label">Iron Log</div><div class="settings-row-sub">Workout Session Logger — Desktop-first PWA</div></div>
-          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent)">v1.4.1</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent)">v1.5.0</div>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Storage</div><div class="settings-row-sub">All data stored to ~/Documents/IronLog/ (Electron file storage)</div></div>
@@ -2220,7 +2359,7 @@
 
   <!-- EXERCISE LIBRARY PAGE -->
   <div id="page-exlib" class="page">
-    <div style="max-width:960px">
+    <div style="max-width:1200px">
 
       <!-- Stats row -->
       <div class="exlib-stat-grid" id="exlib-stats"></div>
@@ -2817,6 +2956,25 @@ function restoreTheme() {
     const btn = document.getElementById('theme-btn-topbar');
     if (btn) btn.textContent = '☀️';
   }
+  const variant = localStorage.getItem('iron_log_variant') || 'volt';
+  if (variant && variant !== 'volt') {
+    document.body.dataset.variant = variant;
+  }
+  document.querySelectorAll('.variant-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.v === variant);
+  });
+}
+
+function applyVariant(v) {
+  if (!v || v === 'volt') {
+    delete document.body.dataset.variant;
+  } else {
+    document.body.dataset.variant = v;
+  }
+  localStorage.setItem('iron_log_variant', v);
+  document.querySelectorAll('.variant-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.v === v);
+  });
 }
 
 // ═══════════════════════ MODAL ═══════════════════════
@@ -3574,7 +3732,7 @@ function renderSessionsPage() {
     <tr onclick="openDetail('${s.id}')">
       <td><span class="font-mono text-sm">${formatDate(s.date)}</span></td>
       <td><span class="program-badge ${getBadgeClass(s.program)}">${s.program}</span></td>
-      <td class="text-muted font-mono text-sm">${s.duration || '—'} min</td>
+      <td class="text-muted font-mono text-sm">${(s.duration && s.duration <= 300) ? s.duration + ' min' : '—'}</td>
       <td class="text-sm">${(s.exercises||[]).map(e => `<span style="color:var(--text2)">${e.name}</span>`).join('<span style="color:var(--text3)"> · </span>')}</td>
       <td><span class="volume-num">${(s.totalVol||0).toLocaleString()} kg</span></td>
       <td class="text-muted text-sm" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.notes || ''}</td>
@@ -4883,7 +5041,7 @@ function parseTrainingProgramSheet(ws, wb) {
       let duration = 0;
       if (durCell) {
         const dv = parseFloat(durCell.v);
-        if (!isNaN(dv)) duration = Math.round(dv);
+        if (!isNaN(dv) && dv > 0 && dv <= 300) duration = Math.round(dv);
       }
 
       // Data row is row+2 (the actual set values)
@@ -5526,7 +5684,7 @@ function saveTrainingDefaults() {
 function saveDisplayName() {
   const val = document.getElementById('display-name-input')?.value.trim() || '';
   displayName = val; saveData();
-  if (_syncEnabled) updateSyncBadge('online');
+  if (_supaUser) updateSyncBadge('online');
   showToast('Display name saved.', 'success');
 }
 
