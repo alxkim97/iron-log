@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+﻿const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -147,3 +147,5 @@ app.on('before-quit', (event) => {
     mainWindow.webContents.send('app-quitting');
   }
 });
+
+

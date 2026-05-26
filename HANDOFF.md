@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-25 (Company PC)
-**Current version:** v1.5.1
+**Last updated:** 2026-05-26 (Company PC)
+**Current version:** v1.6.0
 **Branch:** main
 
 ---
@@ -41,7 +41,40 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 
 ---
 
-## What was done this session (2026-05-25, Company PC)
+## What was done this session (2026-05-26, Company PC)
+
+### Major UX update (v1.6.0)
+
+**Split session modal — exercise context panel:**
+- Session modal now 980px wide with left pane (form + exercises) and right pane (exercise history)
+- Click any exercise name → right pane shows: line chart (last 8 sessions, max weight + est. 1RM), PR, sessions count, last 5 sessions as clickable rows
+- Click a row → loads that session's weights into the inputs
+- "Load Last" button removed; "▾ history" inline dropdown removed — replaced by the right panel
+
+**Auto-fill last session values:**
+- When an exercise name is resolved (typed or autocomplete), inputs are auto-filled with last session's actual values (solid, not placeholders)
+- Only fills if inputs are currently empty (won't overwrite manual entries)
+
+**Template exercise autocomplete:**
+- New Template modal exercise inputs now have the same autocomplete dropdown as the session modal (library + history)
+
+**Today's Workout popup:**
+- On app launch, shows today's workout from the OPTION B PPL Hybrid routine
+- Pre-fills session modal with today's exercises (correct set counts, auto-filled last weights)
+- Skip dropdown: Skip today / Pause 3 days / Pause 1 week / Turn off
+- View Routine opens the full protocol on top (today popup stays open underneath)
+- Settings → Appearance: "Daily Workout Prompt" toggle + "Show now" button
+- ✕ button only closes modal, doesn't mark as "seen today"
+
+**Dashboard Collapse All:**
+- "— COLLAPSE ALL / + EXPAND ALL" toggle button at top-right of dashboard
+- Collapses or expands all 6 sections at once; button label reflects current state
+
+**Bug fix — GPU crash on launch:**
+- Electron GPU process was crashing on this machine's GPU driver
+- Fix: `--disable-gpu --disable-software-rasterizer` flags added to `package.json` start script
+
+---
 
 ### Bug fix (v1.5.1)
 
@@ -110,9 +143,10 @@ Complete rebuild from v1.3.0. Major additions:
 
 ## What to continue next session
 
-1. **Test cloud sync** — sign in, verify all 6 tables sync correctly
-2. **Test import restore** — export backup, clear data, re-import → check bwLog/templates/checkins/walkData all come back
-3. **Feature ideas (priority order):**
+1. **Test today's popup** — Settings → Appearance → "Show now" to verify it fires and "Start Session" pre-fills correctly
+2. **Test split session modal** — open new session, click each exercise, verify right panel chart + history rows + load-on-click all work
+3. **Test auto-fill** — start session, type exercise name that has history, verify inputs fill automatically
+4. **Feature ideas (priority order):**
    - Plate calculator — input target weight, show plates to load per side
    - Rest timer — countdown between sets with audio cue
    - Body measurements tracker (waist, chest, arms etc.)
@@ -145,6 +179,6 @@ Key facts:
 - Run: npm start | Build: npm run build
 - Git: push/pull via GitHub Desktop ONLY (CLI git push gives 403 on this account)
 
-Last done: Fixed sync badge showing email instead of display name (race condition — badge now refreshes after local data loads in initApp).
+Last done: Split session modal with exercise history/chart panel, auto-fill last session values, Today's Workout popup with pause options, Collapse All dashboard toggle, template autocomplete, GPU crash fix.
 Pending features: plate calculator, rest timer, body measurements tracker.
 ```
