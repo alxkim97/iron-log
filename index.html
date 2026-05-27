@@ -2504,6 +2504,7 @@
   <div class="modal" style="max-width:1200px;width:96vw">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">NEW SESSION</div>
+      <button id="ctx-pane-toggle-btn" onclick="toggleCtxPane()" style="background:none;border:1px solid var(--border);color:var(--text3);cursor:pointer;padding:3px 10px;border-radius:4px;font-size:0.68rem;letter-spacing:.5px;margin-right:8px;transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'" title="Toggle history panel">◀ HISTORY</button>
       <button class="modal-close" onclick="closeModal('session-modal')">✕</button>
     </div>
     <div class="session-split">
@@ -3205,6 +3206,7 @@ function openNewSession() {
   addExerciseBlock();
   updateTotalVolDisplay();
   openModal('session-modal');
+  applyCtxPaneVisibility();
 }
 
 function openEditSession(id) {
@@ -3223,6 +3225,7 @@ function openEditSession(id) {
   (s.exercises || []).forEach(ex => addExerciseBlock(ex));
   updateTotalVolDisplay();
   openModal('session-modal');
+  applyCtxPaneVisibility();
 }
 
 function addExerciseBlock(data) {
@@ -5786,6 +5789,23 @@ function updateLastPerf(exid, name) {
 }
 // ── EXERCISE CONTEXT PANEL (right pane of session modal) ──
 let _ctxHistory = [];
+let _ctxPaneVisible = localStorage.getItem('iron_ctx_visible') !== '0';
+
+function toggleCtxPane() {
+  _ctxPaneVisible = !_ctxPaneVisible;
+  localStorage.setItem('iron_ctx_visible', _ctxPaneVisible ? '1' : '0');
+  const pane = document.getElementById('session-ctx-pane');
+  const btn = document.getElementById('ctx-pane-toggle-btn');
+  if (pane) pane.style.display = _ctxPaneVisible ? '' : 'none';
+  if (btn) btn.textContent = _ctxPaneVisible ? '◀ HISTORY' : '▶ HISTORY';
+}
+
+function applyCtxPaneVisibility() {
+  const pane = document.getElementById('session-ctx-pane');
+  const btn = document.getElementById('ctx-pane-toggle-btn');
+  if (pane) pane.style.display = _ctxPaneVisible ? '' : 'none';
+  if (btn) btn.textContent = _ctxPaneVisible ? '◀ HISTORY' : '▶ HISTORY';
+}
 
 function setActiveExContext(exid, name) {
   const pane = document.getElementById('session-ctx-pane');
@@ -5821,20 +5841,22 @@ function setActiveExContext(exid, name) {
   const chartPoints = allHistory.slice(-8);
   _ctxHistory = [...allHistory].reverse().slice(0, 5); // newest first, for table
 
+  pane.scrollTop = 0;
   pane.innerHTML = `
     <div class="ex-ctx-name">${name.trim()}</div>
     <div class="ex-ctx-meta">${allHistory.length} sessions · PR ${prMaxW}kg · est.1RM ${prE1rm}kg</div>
-    <div style="height:200px;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)">
+    <div style="height:200px;min-height:200px;flex-shrink:0;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)">
       <svg id="ctx-chart-svg" style="width:100%;height:100%" viewBox="0 0 300 200" preserveAspectRatio="none"></svg>
     </div>
     <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Recent — click to load</div>
     ${_ctxHistory.map((h, i) => {
       const isPR = h.maxW > 0 && h.maxW === prMaxW;
-      const allSets = (h.sets || []).filter(s => s.weight && s.reps);
+      const allSets = (h.sets || []).filter(s => s.weight);
       let wIdx = 0;
       const setsHtml = allSets.map(s => {
         const lbl = s.type === 'warmup' ? 'WU' : 'W' + (++wIdx);
-        return `<div class="ex-ctx-hist-setrow"><span class="s-lbl">${lbl}</span><span>${s.weight} kg × ${s.reps}</span></div>`;
+        const detail = s.reps ? `${s.weight} kg × ${s.reps}` : `${s.weight} kg`;
+        return `<div class="ex-ctx-hist-setrow"><span class="s-lbl">${lbl}</span><span>${detail}</span></div>`;
       }).join('');
       return `<div class="ex-ctx-hist-card${isPR ? ' pr-row' : ''}" onclick="loadCtxSession('${exid}',${i})">
         <div class="ex-ctx-hist-hdr">
@@ -5859,7 +5881,12 @@ function drawExContextChart(points) {
   const xScale = i => PAD.left + (i / Math.max(points.length - 1, 1)) * chartW;
   const yScale = v => PAD.top + chartH - ((v - minWt) / (maxWt - minWt || 1)) * chartH;
   const wtLine = points.map((p, i) => `${i===0?'M':'L'}${xScale(i).toFixed(1)},${yScale(p.maxW).toFixed(1)}`).join(' ');
-  const e1rmLine = points.map((p, i) => `${i===0?'M':'L'}${xScale(i).toFixed(1)},${yScale(p.e1rm).toFixed(1)}`).join(' ');
+  let e1rmLine = '', e1rmFirst = true;
+  points.forEach((p, i) => {
+    if (!p.e1rm) return;
+    e1rmLine += `${e1rmFirst?'M':'L'}${xScale(i).toFixed(1)},${yScale(p.e1rm).toFixed(1)} `;
+    e1rmFirst = false;
+  });
   const areaPath = `${wtLine} L${xScale(points.length-1).toFixed(1)},${(PAD.top+chartH).toFixed(1)} L${PAD.left},${(PAD.top+chartH).toFixed(1)} Z`;
   const ticks = 3;
   const yTicks = Array.from({length:ticks+1}, (_,i) => minWt + ((maxWt-minWt)/ticks)*i);

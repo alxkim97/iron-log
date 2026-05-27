@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
 **Last updated:** 2026-05-27 (Condo PC)
-**Current version:** v1.6.1
+**Current version:** v1.6.2
 **Branch:** main
 
 ---
@@ -42,6 +42,24 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 ---
 
 ## What was done this session (2026-05-27, Condo PC)
+
+### Session modal right panel polish (v1.6.2)
+
+**History panel toggle:**
+- "◀ HISTORY" button added to session modal header; toggles right pane on/off
+- State persisted in `localStorage` (`iron_ctx_visible`); restored on modal open
+- Button label flips to "▶ HISTORY" when pane is hidden
+
+**Chart fixes:**
+- 1RM dashed line now skips sessions where reps weren't recorded (was causing sudden spikes from zero)
+- Chart container gets `min-height:200px;flex-shrink:0` to prevent flex layout from collapsing it
+- Pane scrolls to top on exercise switch so chart is always visible without scrolling
+
+**History cards fix:**
+- Set filter changed from `weight && reps` to just `weight` — sessions with weight-only entries now show their sets
+- Reps display is optional: shows "87 kg × 8" if reps exist, "87 kg" if only weight was logged
+
+---
 
 ### Session modal UX improvements + encoding fix (v1.6.1)
 
@@ -203,6 +221,6 @@ Key facts:
 - Run: npm start | Build: npm run build
 - Git: push/pull via GitHub Desktop ONLY (CLI git push gives 403 on this account)
 
-Last done: Encoding fix (garbled chars restored), wider right panel (460px), taller chart (200px), vertical session history cards, auto-fill fix for Today popup exercises.
+Last done: History panel toggle (◀▶ button), chart 1RM spike fix, chart flex-collapse fix, history cards show weight-only sets.
 Pending features: plate calculator, rest timer, body measurements tracker.
 ```
