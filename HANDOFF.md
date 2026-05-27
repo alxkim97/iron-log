@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-26 (Company PC)
-**Current version:** v1.6.0
+**Last updated:** 2026-05-27 (Condo PC)
+**Current version:** v1.6.1
 **Branch:** main
 
 ---
@@ -41,7 +41,34 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 
 ---
 
-## What was done this session (2026-05-26, Company PC)
+## What was done this session (2026-05-27, Condo PC)
+
+### Session modal UX improvements + encoding fix (v1.6.1)
+
+**Encoding corruption fix:**
+- Previous session's version bump used PowerShell `Set-Content` which re-read the file as Windows-1252 and wrote it as UTF-8, double-encoding all non-ASCII chars
+- Fixed by reading the file as UTF-8, encoding back to Windows-1252 bytes (reversing the misread), then decoding as UTF-8 — restored all —, ×, ✕, ⚡, 📊, 💪, 🏆, and all other emojis/symbols
+- Also removed the UTF-8 BOM that PowerShell had prepended
+
+**Session modal right panel — wider + taller chart:**
+- Right pane width: 310px → 460px
+- Modal max-width: 980px → 1200px
+- Chart height: 115px → 200px (nearly double the graph area)
+- SVG viewBox updated to 300×200
+
+**Session modal right panel — vertical history cards:**
+- History rows replaced with cards: each session shows date + volume on top, then individual sets listed below (`WU 82 kg × 9`, `W1 87 kg × 8`, etc.)
+- PR sessions get a left accent border instead of just color change
+- Click any card to load that session's values
+
+**Auto-fill fix for Today popup:**
+- `addExerciseBlock` now calls `autoLoadExercise` when a name is pre-set (Today popup, template apply)
+- Values from the last session for each exercise are filled into inputs immediately on modal open — no interaction required
+- Guard still prevents overwrite if inputs already have values (existing session editing)
+
+---
+
+## What was done (2026-05-26, Company PC)
 
 ### Major UX update (v1.6.0)
 
@@ -143,10 +170,7 @@ Complete rebuild from v1.3.0. Major additions:
 
 ## What to continue next session
 
-1. **Test today's popup** — Settings → Appearance → "Show now" to verify it fires and "Start Session" pre-fills correctly
-2. **Test split session modal** — open new session, click each exercise, verify right panel chart + history rows + load-on-click all work
-3. **Test auto-fill** — start session, type exercise name that has history, verify inputs fill automatically
-4. **Feature ideas (priority order):**
+1. **Feature ideas (priority order):**
    - Plate calculator — input target weight, show plates to load per side
    - Rest timer — countdown between sets with audio cue
    - Body measurements tracker (waist, chest, arms etc.)
@@ -179,6 +203,6 @@ Key facts:
 - Run: npm start | Build: npm run build
 - Git: push/pull via GitHub Desktop ONLY (CLI git push gives 403 on this account)
 
-Last done: Split session modal with exercise history/chart panel, auto-fill last session values, Today's Workout popup with pause options, Collapse All dashboard toggle, template autocomplete, GPU crash fix.
+Last done: Encoding fix (garbled chars restored), wider right panel (460px), taller chart (200px), vertical session history cards, auto-fill fix for Today popup exercises.
 Pending features: plate calculator, rest timer, body measurements tracker.
 ```
