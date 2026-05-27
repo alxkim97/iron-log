@@ -1,7 +1,7 @@
-﻿{
+{
   "name": "iron-log",
-  “version”: “1.6.1”,
-  “description”: “IRON LOG — Workout Session Logger”,
+  "version": "1.6.1",
+  "description": "IRON LOG - Workout Session Logger",
   "main": "main.js",
   "author": "Alex",
   "license": "MIT",
@@ -29,5 +29,3 @@
     }
   }
 }
-
-
