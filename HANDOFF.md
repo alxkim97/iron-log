@@ -1,6 +1,6 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-27 (Condo PC)
+**Last updated:** 2026-05-28 (Condo PC)
 **Current version:** v1.6.2
 **Branch:** main
 
@@ -38,6 +38,23 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 - **Excel Import** — paste or upload `.xlsx` to bulk import sessions
 - **Supabase Cloud Sync** — sign in, auto-sync every 5 min, manual push/pull, sync log
 - **Settings** — display name, training defaults, danger zone, activity heatmap, achievements, PR table, monthly volume chart
+
+---
+
+## What was done this session (2026-05-28, Condo PC)
+
+### Excel data extraction + duration fix (no version bump)
+
+**Excel parser:**
+- Parsed `excel/260528 Self-Care.xlsx` sheet "💪 Training Program 4.0" using PowerShell regex (XML namespace-safe, handles self-closing `<f ... />` shared formula tags)
+- Correctly decoded formulas like `((14*1)+(10*3))/4` → 1 warmup set (14 reps) + 3 working sets (10 reps), with reps and weight formulas paired per set
+- 79 sessions extracted (Jan 5 – Apr 17, 2026), saved to `excel/excel_import.json`
+
+**Duration fix applied to app data:**
+- All 79 Jan–Apr sessions in `ironlog-data.json` had wrong `duration` values (e.g. 6479) — the old Excel import stored the total **volume formula result** instead of actual minutes
+- Cross-referenced with Excel extraction; correct durations (33–146 min) applied directly to the data file
+- Backup saved to `~/Documents/IronLog/backups/ironlog-data-pre-duration-fix-20260528-130451.json`
+- No session sets data changed — reps/weights were already correct in the app
 
 ---
 
@@ -192,6 +209,11 @@ Complete rebuild from v1.3.0. Major additions:
    - Plate calculator — input target weight, show plates to load per side
    - Rest timer — countdown between sets with audio cue
    - Body measurements tracker (waist, chest, arms etc.)
+
+2. **Excel data notes:**
+   - `excel/excel_import.json` — full extracted sessions from Training Program 4.0 (Jan–Apr 2026)
+   - Sessions already exist in app with correct set data; only duration was wrong (now fixed)
+   - Re-run extraction if needed: temp unzip still at `$env:TEMP\ironlog_xl`
 
 ---
 
