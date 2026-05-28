@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-28 (Condo PC)
-**Current version:** v1.6.2
+**Last updated:** 2026-05-28 (Work PC)
+**Current version:** v1.7.0
 **Branch:** main
 
 ---
@@ -38,6 +38,53 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 - **Excel Import** — paste or upload `.xlsx` to bulk import sessions
 - **Supabase Cloud Sync** — sign in, auto-sync every 5 min, manual push/pull, sync log
 - **Settings** — display name, training defaults, danger zone, activity heatmap, achievements, PR table, monthly volume chart
+
+---
+
+## What was done this session (2026-05-28, Work PC)
+
+### Major UX overhaul (v1.7.0)
+
+**Data & cloud:**
+- Removed all auto-seeding (demo sessions, bwLog, checkins, templates) — app now starts clean
+- Cloud Sync section added to Settings: Sign In/Out, Push, Pull, Clear Cloud buttons
+- Pull/Push buttons moved from topbar into `··· More` dropdown
+- `npm start` now runs without `--disable-gpu` (work PC); `npm run start-safe` for condo PC
+
+**Calendar:**
+- Click empty day → opens new session modal with that date pre-filled
+- Click session day → shows session detail with muscle chips and vertical set display
+- Delete button (🗑) on each session card in the calendar detail panel
+- **Multi-day select mode**: "Select" button on calendar toggles select mode; click days to select (turns red); "Select All", "Clear", count badge, "🗑 Delete Selected Days"
+
+**All Sessions page:**
+- Bulk Delete card (open by default): Today / This Week / This Month / Last Month / All Sessions presets + custom date range; live count; confirm before delete; undoable
+
+**Session modal:**
+- **📋 Load Day** button: dropdown (Push/Pull/Legs/Upper/Arms) pre-fills exercises from PPL Hybrid routine with auto-fill from history
+- **Tab order fixed**: set ✕ buttons skip tab order (`tabindex="-1"`)
+- **Fuzzy exercise search**: scores by exact → starts-with → all words → any word → loose char match
+- **BW button**: fills empty weight inputs from latest logged body weight; shows fraction picker (100% / 67% / 33% / 40%) auto-detected by exercise name
+- **Exercise notes** (📝): per-exercise note field (e.g. "cable level 3"); saved and shown in calendar detail
+- **Effort clear** (×): clears effort rating back to —
+- **Unsaved changes warning**: closing via ✕, Cancel, or backdrop click shows "Leave without saving?" if any field was changed
+- **Post-session weight prompt**: after saving a new session, small card appears bottom-right to log post-workout body weight
+
+**Dashboard:**
+- Drag-to-reorder sections using ⠿ handle; order persists to localStorage
+- Vertical set display in session cards (one set per line)
+- Streak widget centered (flame + number stacked)
+- PR animation: 🏆 NEW PR! banner + particle burst when new weight PR detected on save
+- Walk widget days spread full width
+- This Week / Quick Start cards equal height
+
+**UI polish:**
+- Renamed "Option B PPL" → "PPL Hybrid" throughout
+- Base font size: 14px → 15px; tiny label floor raised (0.5rem → 0.6rem, 0.55rem → 0.65rem)
+- Sidebar: dark blue gradient (`linear-gradient(175deg, #1a1a2a, #0e0f14)`)
+- Cards: subtle directional gradient + inset highlight + drop shadow (dark mode)
+- Muscle chips on exercise names (colored by muscle group) in calendar and session detail
+- `showConfirm` extended to support custom button labels
 
 ---
 
@@ -210,10 +257,14 @@ Complete rebuild from v1.3.0. Major additions:
    - Rest timer — countdown between sets with audio cue
    - Body measurements tracker (waist, chest, arms etc.)
 
-2. **Excel data notes:**
-   - `excel/excel_import.json` — full extracted sessions from Training Program 4.0 (Jan–Apr 2026)
-   - Sessions already exist in app with correct set data; only duration was wrong (now fixed)
-   - Re-run extraction if needed: temp unzip still at `$env:TEMP\ironlog_xl`
+2. **Data entry in progress:**
+   - Alex is manually logging past sessions from Jan 5, 2026 forward
+   - Use "Past first" order — fills auto-fill history before logging present
+   - `excel/excel_import.json` available as reference for Jan–Apr 2026 data
+
+3. **npm start commands:**
+   - Work PC: `npm start` (GPU enabled, faster)
+   - Condo PC: `npm run start-safe` (disables GPU for driver compatibility)
 
 ---
 
