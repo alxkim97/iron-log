@@ -1,7 +1,7 @@
 # Iron Log — Session Handoff
 
-**Last updated:** 2026-05-28 (Work PC)
-**Current version:** v1.7.0
+**Last updated:** 2026-06-03 (Work PC)
+**Current version:** v1.8.0
 **Branch:** main
 
 ---
@@ -38,6 +38,39 @@ Iron Log is a personal workout session logger — Electron 28 desktop app, vanil
 - **Excel Import** — paste or upload `.xlsx` to bulk import sessions
 - **Supabase Cloud Sync** — sign in, auto-sync every 5 min, manual push/pull, sync log
 - **Settings** — display name, training defaults, danger zone, activity heatmap, achievements, PR table, monthly volume chart
+
+---
+
+## What was done this session (2026-06-03, Work PC)
+
+### v1.8.0 — Performance, HEVY import, achievements, protocol editing
+
+**Performance audit & optimizations:**
+- Added `_buildDashCache()`: pre-computes sorted sessions, thisWeek, allVol, weekVol, totalTime, streak, exFreq, progDist in a single O(n) pass — all 12 dashboard sub-functions now share this instead of re-iterating 311 sessions each
+- Weekly chart: replaced 8× full-scan with a single O(n) pass using time-based index math
+- Debounced search input (180 ms): was calling `renderSessionsPage()` on every keystroke
+- `getMusclesForExercise()`: memoized with `_muscleExCache` — eliminates repeated `exerciseLib.find()` + string splits inside render loops
+- Session save no longer re-renders All Sessions page unless that page is active
+- `renderMuscleRecovery`, `renderRecentTable`, `renderStreakWidget` all reuse `_dc.sorted` instead of sorting separately
+
+**HEVY CSV import:**
+- Imported 309 real sessions from HEVY iOS app export (Feb 2025 – Jun 2026) → 311 total sessions
+- Added in-app HEVY importer: Export ▾ → 📱 HEVY Import / Settings → Import HEVY
+- Parses HEVY `workout_data.csv`, maps exercise names, infers program types, deduplicates by date
+- Extracted body weight entries from HEVY session descriptions
+
+**Workout analysis (see HANDOFF for summary):**
+- 311 sessions over 71 weeks = 4.4 sessions/week consistency
+- Body recomposition: 85.1 kg (May 2025) → 76.8 kg (Jun 2026) = −8.3 kg while getting stronger
+- PRs: Smith Incline Bench 45 kg, Smith Squat 52.5 kg, Face Pull 29.5 kg, Leg Extension 72 kg
+
+**Features added this session:**
+- Achievement system: 35 achievements, pop-up toast on unlock, Settings sidebar badge for unseen
+- Protocol editing: ✏ Edit button in PPL Hybrid modal — edit exercise names/sets/muscles/notes per day, add/remove exercises, save to localStorage, reset to default
+- Treadmill exercise added to library + PPL Hybrid Monday
+- Dashboard delete button on Recent Sessions rows
+- `.mc-cardio` muscle chip CSS
+- sbDeleteSessions() wired into all 5 delete paths (fixes sessions returning after restart)
 
 ---
 

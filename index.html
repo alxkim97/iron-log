@@ -477,6 +477,7 @@
   .muscle-chip.mc-core     { background:rgba(232,255,71,.12); color:var(--accent); }
   .muscle-chip.mc-glutes   { background:rgba(255,154,79,.12); color:var(--orange); }
   .muscle-chip.mc-traps    { background:rgba(79,159,255,.12); color:var(--blue); }
+  .muscle-chip.mc-cardio   { background:rgba(100,210,255,.12); color:#64d2ff; }
   .volume-num {
     font-family: 'DM Mono', monospace;
     font-size: 0.8rem;
@@ -1826,6 +1827,18 @@
   .achievement-icon { font-size:1.75rem;margin-bottom:6px; }
   .achievement-name { font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:2px; }
   .achievement-desc { font-size:0.63rem;color:var(--text3);line-height:1.3; }
+  /* Achievement pop-up */
+  #ach-popup { position:fixed;bottom:80px;right:24px;width:300px;background:linear-gradient(135deg,var(--surface2) 0%,var(--surface3) 100%);border:1px solid var(--accent);border-radius:14px;padding:16px 18px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 24px var(--accent-dim);animation:ach-in .45s cubic-bezier(.175,.885,.32,1.275) forwards; }
+  #ach-popup.ach-out { animation:ach-out .45s ease forwards; }
+  @keyframes ach-in  { from{opacity:0;transform:translateY(60px) scale(.85)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes ach-out { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-14px)} }
+  #ach-popup .ach-label { font-family:'DM Mono',monospace;font-size:0.58rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px; }
+  #ach-popup .ach-body { display:flex;align-items:center;gap:14px; }
+  #ach-popup .ach-big-icon { font-size:2.5rem;line-height:1;flex-shrink:0; }
+  #ach-popup .ach-title { font-weight:700;font-size:0.9375rem;color:var(--text);margin-bottom:3px; }
+  #ach-popup .ach-sub { font-size:0.7rem;color:var(--text2);line-height:1.35; }
+  /* Nav achievement badge */
+  .nav-ach-badge { background:var(--red);color:#fff;border-radius:10px;font-size:0.58rem;font-weight:700;padding:1px 5px;min-width:16px;text-align:center;margin-left:auto;display:none;line-height:1.4; }
 
   /* ── SETTINGS STAT CARDS ENHANCED ── */
   .settings-stat-grid { display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:16px; }
@@ -1900,10 +1913,11 @@
     <div class="nav-section-label" style="margin-top:8px">App</div>
     <button class="nav-btn" data-page="settings" onclick="showPage('settings', this)">
       <span class="nav-icon">⚙️</span> Settings
+      <span class="nav-ach-badge" id="settings-ach-badge"></span>
     </button>
   </div>
   <div class="sidebar-bottom">
-    <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text3)">v1.6.0</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text3)">v1.8.0</div>
   </div>
 </nav>
 
@@ -1925,6 +1939,7 @@
           <button class="em-item" onclick="importData();toggleExportMenu()">⬆ Import JSON</button>
           <div class="em-sep"></div>
           <button class="em-item" onclick="openExcelImport();toggleExportMenu()">📊 Excel Import</button>
+          <button class="em-item" onclick="document.getElementById('hevy-import-input').click();toggleExportMenu()">📱 HEVY Import</button>
         </div>
       </div>
       <div class="more-drop-wrap" id="moreDropWrapper">
@@ -2106,7 +2121,7 @@
       </div>
       <div class="card-body">
         <div class="filter-row">
-          <input type="text" class="filter-input" id="search-input" placeholder="Search sessions or exercises…" style="flex:1;min-width:200px" oninput="renderSessionsPage()">
+          <input type="text" class="filter-input" id="search-input" placeholder="Search sessions or exercises…" style="flex:1;min-width:200px" oninput="_debouncedSearch()">
           <select class="filter-input" id="filter-program" onchange="renderSessionsPage()">
             <option value="">All Programs</option>
             <option>Push</option><option>Pull</option><option>Legs</option>
@@ -2428,6 +2443,13 @@
           </div>
           <button class="btn btn-ghost" onclick="openExcelImport()">📊 Import Excel</button>
         </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Import from HEVY</div>
+            <div class="settings-row-sub">Upload a workout_data.csv exported from the HEVY iOS app</div>
+          </div>
+          <button class="btn btn-ghost" onclick="document.getElementById('hevy-import-input').click()">📱 Import HEVY</button>
+        </div>
       </div>
 
       <!-- Cloud Sync -->
@@ -2511,7 +2533,7 @@
       <div class="card">
         <div class="settings-row">
           <div><div class="settings-row-label">Iron Log</div><div class="settings-row-sub">Workout Session Logger — Desktop-first PWA</div></div>
-          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent)">v1.6.0</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent)">v1.8.0</div>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Storage</div><div class="settings-row-sub">All data stored to ~/Documents/IronLog/ (Electron file storage)</div></div>
@@ -2724,7 +2746,10 @@
   <div class="modal" style="width:860px">
     <div class="modal-header">
       <div class="modal-title">PPL HYBRID</div>
-      <button class="modal-close" onclick="closeModal('protocol-modal')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" id="protocol-edit-btn" onclick="showProtocol(true)" style="font-size:0.75rem">✏ Edit</button>
+        <button class="modal-close" onclick="closeModal('protocol-modal')">✕</button>
+      </div>
     </div>
     <div class="modal-body" id="protocol-body"></div>
   </div>
@@ -2867,6 +2892,7 @@
 
 <!-- Hidden file input for import -->
 <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImport(event)">
+<input type="file" id="hevy-import-input" accept=".csv" style="display:none" onchange="handleHevyImport(event)">
 <!-- Hidden file input for Excel import -->
 <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelFile(event)">
 
@@ -3007,6 +3033,11 @@ let redoStack = [];
 let syncLog = [];
 let _modalUndoStack = [];
 let _modalRedoStack = [];
+let _achQueue = [];
+let _achShowing = false;
+let _dc = null; // dashboard pre-computed cache, built once per renderDashboard call
+let _searchTimer = null;
+function _debouncedSearch() { clearTimeout(_searchTimer); _searchTimer = setTimeout(renderSessionsPage, 180); }
 const STORAGE_KEY = 'iron_log_v1';
 const BW_KEY = 'iron_log_bw_v1';
 const TPL_KEY = 'iron_log_tpl_v1';
@@ -3094,7 +3125,9 @@ const PROTOCOL = {
       { name: 'Seated Cable Row', sets: '3 × 8–12', muscles: 'Mid-back, Biceps', notes: 'Superset 2A' },
       { name: 'Tricep Pushdown', sets: '3 × 12–15', muscles: 'Triceps', notes: 'Superset 2B' },
     ]},
-    { day: 'Monday', type: 'Cardio (optional)', duration: '0–40 min', exercises: [] },
+    { day: 'Monday', type: 'Cardio (optional)', duration: '0–40 min', exercises: [
+      { name: 'Treadmill', sets: '20–40 min', muscles: 'Cardiovascular, Legs', notes: 'Speed + incline as desired' },
+    ]},
     { day: 'Tuesday', type: 'Pull', duration: '~45 min', exercises: [
       { name: 'Seated Cable Row', sets: '3 × 6–12', muscles: 'Mid-back, Rhomboids, Biceps', notes: 'Compound anchor' },
       { name: 'EZ Bar Curl', sets: '3 × 8–12', muscles: 'Biceps, Brachialis', notes: 'Superset 1A' },
@@ -3136,6 +3169,11 @@ const PROTOCOL = {
     { muscle: 'Core', sets: 6, target: '8–12', freq: '1×', status: 'GOOD' },
   ]
 };
+
+let _protocol = (() => {
+  try { const s = localStorage.getItem('iron_protocol'); return s ? JSON.parse(s) : JSON.parse(JSON.stringify(PROTOCOL)); }
+  catch { return JSON.parse(JSON.stringify(PROTOCOL)); }
+})();
 
 // ═══════════════════════ NAVIGATION ═══════════════════════
 function showPage(pageId, btn) {
@@ -3187,8 +3225,8 @@ function showTodayPrompt() {
   if (localStorage.getItem('iron_today_shown') === today) return;
 
   const dayIdx = new Date().getDay();
-  const day = PROTOCOL.days[dayIdx];
-  if (!day || !day.exercises.length) return;
+  const day = _protocol.days[dayIdx];
+  if (!day || !day.exercises.length || day.type === 'REST' || day.type === 'Cardio (optional)') return;
 
   const typeColors = { Push:'var(--orange)', Pull:'var(--blue)', Legs:'var(--green)', Upper:'var(--purple)', Arms:'var(--red)' };
   const color = typeColors[day.type] || 'var(--accent)';
@@ -3256,7 +3294,7 @@ function toggleTodayPromptSetting() {
 function startProtocolSession(dayIdx) {
   closeModal('today-modal');
   localStorage.setItem('iron_today_shown', new Date().toISOString().slice(0, 10));
-  const day = PROTOCOL.days[dayIdx];
+  const day = _protocol.days[dayIdx];
   const programMap = { 'Cardio (optional)': 'Cardio' };
   openNewSession();
   setTimeout(() => {
@@ -3678,8 +3716,9 @@ function saveSession() {
   saveData();
   closeModal('session-modal');
   renderDashboard();
-  renderSessionsPage();
+  if (document.getElementById('page-sessions')?.classList.contains('active')) renderSessionsPage();
   showToast(state.editingId ? 'Session updated!' : 'Session saved!', 'success');
+  setTimeout(checkNewAchievements, 500);
   if (isNew) setTimeout(() => promptPostSessionWeight(data.date), 350);
 }
 
@@ -3719,8 +3758,10 @@ function saveQuickBW(date) {
 function confirmDeleteSession() {
   showConfirm('Delete Session', 'Are you sure you want to delete this session? This cannot be undone.', () => {
     pushUndoState('Delete session');
-    state.sessions = state.sessions.filter(x => x.id !== state.editingId);
+    const deletedId = state.editingId;
+    state.sessions = state.sessions.filter(x => x.id !== deletedId);
     saveData();
+    sbDeleteSessions([deletedId]);
     closeModal('session-modal');
     renderDashboard();
     renderSessionsPage();
@@ -3744,7 +3785,7 @@ const MUSCLE_TARGETS = [
 ];
 
 function getWeeklySetsByMuscle() {
-  const thisWeekSessions = getThisWeekSessions();
+  const thisWeekSessions = _dc ? _dc.thisWeek : getThisWeekSessions();
   const muscleMap = {};
   MUSCLE_TARGETS.forEach(m => { muscleMap[m.name] = 0; });
   thisWeekSessions.forEach(session => {
@@ -3980,7 +4021,42 @@ function drawOverloadChart(points) {
 }
 
 
+function _buildDashCache() {
+  const sessions = state.sessions;
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+
+  const sorted = [...sessions].sort((a, b) => (b.date > a.date ? 1 : -1));
+  const thisWeek = sessions.filter(s => s.date >= weekStartStr);
+
+  let allVol = 0, weekVol = 0, totalTime = 0;
+  const exFreq = {}, progDist = {}, dateSet = new Set();
+  sessions.forEach(s => {
+    allVol += s.totalVol || 0;
+    totalTime += s.duration || 0;
+    progDist[s.program] = (progDist[s.program] || 0) + 1;
+    dateSet.add(s.date);
+    if (s.date >= weekStartStr) weekVol += s.totalVol || 0;
+    (s.exercises || []).forEach(e => {
+      if (!exFreq[e.name]) exFreq[e.name] = { count: 0, vol: 0 };
+      exFreq[e.name].count++;
+      exFreq[e.name].vol += e.totalVol || 0;
+    });
+  });
+
+  let streak = 0;
+  let cur = new Date(todayStr + 'T00:00:00');
+  while (dateSet.has(cur.toISOString().slice(0, 10))) { streak++; cur.setDate(cur.getDate() - 1); }
+
+  _dc = { sorted, thisWeek, weekStartStr, allVol, weekVol, totalTime, streak, exFreq, progDist, dateSet };
+}
+
 function renderDashboard() {
+  _buildDashCache();
   renderStreakWidget();
   renderBWWidget();
   renderMuscleRecovery();
@@ -4005,23 +4081,7 @@ function getThisWeekSessions() {
 }
 
 function renderStatCards() {
-  const thisWeek = getThisWeekSessions();
-  const weekVol = thisWeek.reduce((s, x) => s + (x.totalVol || 0), 0);
-  const allVol = state.sessions.reduce((s, x) => s + (x.totalVol || 0), 0);
-  const totalTime = state.sessions.reduce((s, x) => s + (x.duration || 0), 0);
-
-  // Streak
-  const sorted = [...state.sessions].sort((a,b) => new Date(b.date)-new Date(a.date));
-  let streak = 0;
-  if (sorted.length) {
-    const today = new Date().toISOString().slice(0,10);
-    let cur = new Date(today);
-    const dates = new Set(sorted.map(s => s.date));
-    while (dates.has(cur.toISOString().slice(0,10))) {
-      streak++;
-      cur.setDate(cur.getDate() - 1);
-    }
-  }
+  const { thisWeek, weekVol, allVol, totalTime, streak } = _dc || { thisWeek: getThisWeekSessions(), weekVol: 0, allVol: 0, totalTime: 0, streak: calcStreak() };
 
   const cards = [
     { label: 'Sessions This Week', value: thisWeek.length, sub: `${state.sessions.length} total`, color: 'var(--accent)' },
@@ -4040,20 +4100,22 @@ function renderStatCards() {
 }
 
 function renderWeeklyChart() {
+  const now = new Date();
   const weeks = [];
   for (let i = 7; i >= 0; i--) {
-    const start = new Date();
-    start.setDate(start.getDate() - start.getDay() - i * 7);
-    start.setHours(0,0,0,0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 7);
-    const vol = state.sessions.filter(s => {
-      const d = new Date(s.date);
-      return d >= start && d < end;
-    }).reduce((s, x) => s + (x.totalVol || 0), 0);
-    const label = start.toLocaleDateString('en', { month: 'short', day: 'numeric' });
-    weeks.push({ label, vol });
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay() - i * 7);
+    start.setHours(0, 0, 0, 0);
+    weeks.push({ start, startStr: start.toISOString().slice(0,10), vol: 0, label: start.toLocaleDateString('en', { month: 'short', day: 'numeric' }) });
   }
+  const earliest = weeks[0].startStr;
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const t0 = weeks[0].start.getTime();
+  state.sessions.forEach(s => {
+    if (s.date < earliest) return;
+    const idx = Math.floor((new Date(s.date + 'T12:00:00').getTime() - t0) / weekMs);
+    if (idx >= 0 && idx < 8) weeks[idx].vol += s.totalVol || 0;
+  });
   const maxVol = Math.max(...weeks.map(w => w.vol), 1);
   const peakWk = weeks.reduce((a,b) => b.vol > a.vol ? b : a, weeks[0]);
   const peakEl = document.getElementById('weekly-chart-peak');
@@ -4067,7 +4129,7 @@ function renderWeeklyChart() {
 }
 
 function renderRecentTable() {
-  const recent = [...state.sessions].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,6);
+  const recent = (_dc ? _dc.sorted : [...state.sessions].sort((a,b) => b.date > a.date ? 1 : -1)).slice(0, 6);
   const tbody = document.getElementById('recent-table-body');
   if (!recent.length) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">🏋️</div><div class="empty-state-title">No Sessions Yet</div><div class="empty-state-sub">Log your first workout to get started.</div></div></td></tr>`;
@@ -4083,6 +4145,7 @@ function renderRecentTable() {
       <td>
         <div class="action-btns" onclick="event.stopPropagation()">
           <button class="btn btn-ghost btn-sm" onclick="openEditSession('${s.id}')">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="quickDelete('${s.id}')">🗑</button>
         </div>
       </td>
     </tr>
@@ -4090,14 +4153,7 @@ function renderRecentTable() {
 }
 
 function renderTopExercises() {
-  const freq = {};
-  state.sessions.forEach(s => {
-    (s.exercises||[]).forEach(e => {
-      if (!freq[e.name]) freq[e.name] = { count: 0, vol: 0 };
-      freq[e.name].count++;
-      freq[e.name].vol += e.totalVol || 0;
-    });
-  });
+  const freq = (_dc ? _dc.exFreq : (() => { const f={}; state.sessions.forEach(s => (s.exercises||[]).forEach(e => { if(!f[e.name])f[e.name]={count:0,vol:0}; f[e.name].count++; f[e.name].vol+=e.totalVol||0; })); return f; })());
   const sorted = Object.entries(freq).sort((a,b) => b[1].vol - a[1].vol).slice(0, 6);
   const maxVol = sorted[0]?.[1].vol || 1;
   const el = document.getElementById('top-exercises-list');
@@ -4113,8 +4169,7 @@ function renderTopExercises() {
 }
 
 function renderProgramDist() {
-  const dist = {};
-  state.sessions.forEach(s => { dist[s.program] = (dist[s.program]||0) + 1; });
+  const dist = (_dc ? _dc.progDist : (() => { const d={}; state.sessions.forEach(s=>{ d[s.program]=(d[s.program]||0)+1; }); return d; })());
   const total = state.sessions.length || 1;
   const colors = { Push: 'var(--orange)', Pull: 'var(--blue)', Legs: 'var(--green)', Upper: 'var(--purple)', Arms: 'var(--red)', Other: 'var(--text3)' };
   const el = document.getElementById('program-dist');
@@ -4155,7 +4210,7 @@ function renderMuscleGrid() {
     'Overhead Tricep Ext.': ['Triceps'],
   };
   const muscles = ['Chest','Back','Shoulders','Biceps','Triceps','Forearms','Legs','Core'];
-  const weekSessions = getThisWeekSessions();
+  const weekSessions = _dc ? _dc.thisWeek : getThisWeekSessions();
   const sets = {};
   muscles.forEach(m => sets[m] = 0);
   weekSessions.forEach(s => {
@@ -4260,6 +4315,7 @@ function quickDelete(id) {
     pushUndoState('Delete session');
     state.sessions = state.sessions.filter(x => x.id !== id);
     saveData();
+    sbDeleteSessions([id]);
     renderSessionsPage();
     renderDashboard();
     showToast('Session deleted.', 'success');
@@ -4437,58 +4493,112 @@ function renderAlltimeTotals() {
 }
 
 // ═══════════════════════ PROTOCOL MODAL ═══════════════════════
-function showProtocol() {
+function showProtocol(editMode = false) {
   const typeColors = { Push:'var(--orange)', Pull:'var(--blue)', Legs:'var(--green)', Upper:'var(--purple)', Arms:'var(--red)', 'Cardio (optional)':'var(--text3)', REST:'var(--text3)' };
   const body = document.getElementById('protocol-body');
-  body.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      ${PROTOCOL.days.filter(d => d.exercises.length || d.type === 'REST' || d.type === 'Cardio (optional)').map(d => `
-        <div class="card">
-          <div class="card-header" style="background:var(--surface2)">
-            <span style="font-weight:700;font-size:0.875rem;color:var(--text)">${d.day}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:${typeColors[d.type]||'var(--text3)'};padding:2px 8px;border-radius:4px;background:var(--surface3)">${d.type} · ${d.duration}</span>
+  const editBtn = document.getElementById('protocol-edit-btn');
+
+  if (editMode) {
+    if (editBtn) { editBtn.textContent = '← View'; editBtn.onclick = () => showProtocol(false); }
+    body.innerHTML = `
+      <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px">Edit exercises, sets, and notes for each day. Changes save locally and override the default.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        ${_protocol.days.map((d, di) => `
+          <div class="card">
+            <div class="card-header" style="background:var(--surface2)">
+              <span style="font-weight:700;font-size:0.875rem;color:var(--text)">${d.day}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:${typeColors[d.type]||'var(--text3)'};padding:2px 8px;border-radius:4px;background:var(--surface3)">${d.type} · ${d.duration}</span>
+            </div>
+            <div class="card-body" style="padding:8px 12px">
+              ${d.exercises.map((e, ei) => `
+                <div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">
+                  <input class="form-input" style="flex:2;font-size:0.72rem;padding:3px 5px" placeholder="Exercise name" value="${e.name.replace(/"/g,'&quot;')}" oninput="_protoChange(${di},${ei},'name',this.value)">
+                  <input class="form-input" style="flex:1;font-size:0.72rem;padding:3px 5px;min-width:0" placeholder="Sets" value="${(e.sets||'').replace(/"/g,'&quot;')}" oninput="_protoChange(${di},${ei},'sets',this.value)">
+                  <button style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0 5px;font-size:1rem;flex-shrink:0" onclick="_removeProtoEx(${di},${ei})" title="Remove">×</button>
+                </div>
+                <div style="display:flex;gap:3px;margin-bottom:8px">
+                  <input class="form-input" style="flex:2;font-size:0.68rem;padding:2px 5px;color:var(--text2)" placeholder="Muscles" value="${(e.muscles||'').replace(/"/g,'&quot;')}" oninput="_protoChange(${di},${ei},'muscles',this.value)">
+                  <input class="form-input" style="flex:1;font-size:0.68rem;padding:2px 5px;color:var(--text2);min-width:0" placeholder="Notes" value="${(e.notes||'').replace(/"/g,'&quot;')}" oninput="_protoChange(${di},${ei},'notes',this.value)">
+                  <div style="width:22px;flex-shrink:0"></div>
+                </div>
+              `).join('')}
+              ${d.type !== 'REST' ? `<button class="btn btn-ghost btn-sm" style="width:100%;font-size:0.7rem;margin-top:2px" onclick="_addProtoEx(${di})">+ Add Exercise</button>` : ''}
+            </div>
           </div>
-          ${d.exercises.length ? `<div class="card-body" style="padding:12px 16px">
-            ${d.exercises.map(e => `
-              <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:start;gap:12px">
-                <div>
-                  <div style="font-size:0.8125rem;font-weight:500;color:var(--text)">${e.name}</div>
-                  <div style="font-size:0.7rem;color:var(--text3);margin-top:2px">${e.muscles}</div>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--border)">
+        <button class="btn btn-ghost btn-sm" onclick="_resetProtocol()">Reset to Default</button>
+        <button class="btn btn-ghost" onclick="showProtocol(false)">Cancel</button>
+        <button class="btn btn-primary" onclick="_saveProtocol()">Save Changes</button>
+      </div>
+    `;
+  } else {
+    if (editBtn) { editBtn.textContent = '✏ Edit'; editBtn.onclick = () => showProtocol(true); }
+    const vol = _protocol.volume || PROTOCOL.volume;
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        ${_protocol.days.filter(d => d.exercises.length || d.type === 'REST' || d.type === 'Cardio (optional)').map(d => `
+          <div class="card">
+            <div class="card-header" style="background:var(--surface2)">
+              <span style="font-weight:700;font-size:0.875rem;color:var(--text)">${d.day}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:${typeColors[d.type]||'var(--text3)'};padding:2px 8px;border-radius:4px;background:var(--surface3)">${d.type} · ${d.duration}</span>
+            </div>
+            ${d.exercises.length ? `<div class="card-body" style="padding:12px 16px">
+              ${d.exercises.map(e => `
+                <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:start;gap:12px">
+                  <div>
+                    <div style="font-size:0.8125rem;font-weight:500;color:var(--text)">${e.name}</div>
+                    <div style="font-size:0.7rem;color:var(--text3);margin-top:2px">${e.muscles||''}</div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0">
+                    <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--accent)">${e.sets||''}</div>
+                    <div style="font-size:0.65rem;color:var(--text3)">${e.notes||''}</div>
+                  </div>
                 </div>
-                <div style="text-align:right;flex-shrink:0">
-                  <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--accent)">${e.sets}</div>
-                  <div style="font-size:0.65rem;color:var(--text3)">${e.notes}</div>
+              `).join('')}
+            </div>` : `<div class="card-body" style="color:var(--text3);font-size:0.8125rem;text-align:center;padding:16px">${d.type}</div>`}
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📊 Weekly Volume Targets</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            ${vol.map(v => {
+              const pct = Math.min(100, (v.sets / 18) * 100);
+              const color = v.status.includes('OPTIMAL') ? 'var(--green)' : v.status.includes('EXCELLENT') ? 'var(--blue)' : v.status.includes('GOOD') ? 'var(--accent)' : 'var(--orange)';
+              return `
+                <div class="muscle-item">
+                  <div class="muscle-name">${v.muscle}</div>
+                  <div class="muscle-bar-track"><div class="muscle-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+                    <div class="muscle-sets">${v.sets} sets · ${v.freq}</div>
+                    <div style="font-size:0.6rem;color:${color};font-weight:600">${v.status.split(' ')[0]}</div>
+                  </div>
+                  <div style="font-size:0.6rem;color:var(--text3);margin-top:2px">Target: ${v.target}</div>
                 </div>
-              </div>
-            `).join('')}
-          </div>` : `<div class="card-body" style="color:var(--text3);font-size:0.8125rem;text-align:center;padding:16px">${d.type}</div>`}
-        </div>
-      `).join('')}
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">📊 Weekly Volume Targets</span></div>
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          ${PROTOCOL.volume.map(v => {
-            const pct = Math.min(100, (v.sets / 18) * 100);
-            const color = v.status.includes('OPTIMAL') ? 'var(--green)' : v.status.includes('EXCELLENT') ? 'var(--blue)' : v.status.includes('GOOD') ? 'var(--accent)' : 'var(--orange)';
-            return `
-              <div class="muscle-item">
-                <div class="muscle-name">${v.muscle}</div>
-                <div class="muscle-bar-track"><div class="muscle-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-                  <div class="muscle-sets">${v.sets} sets · ${v.freq}</div>
-                  <div style="font-size:0.6rem;color:${color};font-weight:600">${v.status.split(' ')[0]}</div>
-                </div>
-                <div style="font-size:0.6rem;color:var(--text3);margin-top:2px">Target: ${v.target}</div>
-              </div>
-            `;
-          }).join('')}
+              `;
+            }).join('')}
+          </div>
         </div>
       </div>
-    </div>
-  `;
+    `;
+  }
   openModal('protocol-modal');
+}
+
+function _protoChange(di, ei, field, val) { _protocol.days[di].exercises[ei][field] = val; }
+function _addProtoEx(di) { _protocol.days[di].exercises.push({name:'',sets:'3 × 8–12',muscles:'',notes:''}); showProtocol(true); }
+function _removeProtoEx(di, ei) { _protocol.days[di].exercises.splice(ei, 1); showProtocol(true); }
+function _saveProtocol() { localStorage.setItem('iron_protocol', JSON.stringify(_protocol)); showProtocol(false); showToast('Protocol saved.', 'success'); }
+function _resetProtocol() {
+  showConfirm('Reset Protocol', 'Revert to the default PPL Hybrid routine? Custom changes will be lost.', () => {
+    localStorage.removeItem('iron_protocol');
+    _protocol = JSON.parse(JSON.stringify(PROTOCOL));
+    showProtocol(false);
+    showToast('Protocol reset to default.', 'success');
+  });
 }
 
 // ═══════════════════════ EXPORT/IMPORT ═══════════════════════
@@ -4544,6 +4654,148 @@ function handleImport(e) {
   e.target.value = '';
 }
 
+// ═══════════════════════ HEVY IMPORT ═══════════════════════
+const _HEVY_NAME_MAP = {
+  'Seated Cable Row - Bar Grip':'Seated Cable Row','EZ Bar Biceps Curl':'EZ Bar Curl',
+  'Seated Palms Up Wrist Curl':'Wrist Curl','Straight Arm Lat Pulldown (Cable)':'Straight-Arm Pulldown',
+  'Reverse Curl (Barbell)':'Reverse Curl EZ Bar','Squat (Smith Machine)':'Smith Squat',
+  'Back Extension (Weighted Hyperextension)':'Back Extension','Cable Core Pallof Press':'Pallof Press',
+  'Cable Core Palloff Press':'Pallof Press','Leg Extension (Machine)':'Leg Extension',
+  'Incline Bench Press (Smith Machine)':'Smith Incline Bench','Lateral Raise (Dumbbell)':'Lateral Raise',
+  'Cable Fly Crossovers':'Cable Fly Low-High','Triceps Pushdown':'Tricep Pushdown',
+  'Overhead Press (Smith Machine)':'Smith Overhead Press','Seated Incline Curl (Dumbbell)':'Incline DB Curl',
+  'Overhead Triceps Extension (Cable)':'Overhead Tricep Ext.','Bench Press (Smith Machine)':'Smith Bench Press',
+  'Bench Press - Close Grip (Barbell)':'Close-Grip Bench Press','Hammer Curl (Cable)':'Cross Body Hammer Curl',
+  'Bicep Curl (Cable)':'Cable Bicep Curl','Reverse Curl (Cable)':'Reverse Curl EZ Bar',
+  'Reverse Curl (Dumbbell)':'Reverse Curl EZ Bar','Lat Pulldown (Machine)':'Lat Pulldown',
+  'Shrug (Smith Machine)':'Smith Shrug','Shrug (Cable)':'Cable Shrug',
+};
+
+function _hevyMapName(n) { return _HEVY_NAME_MAP[n] || n; }
+
+function _hevyMapProgram(t) {
+  if (/\(Pull\)/.test(t)) return 'Pull';
+  if (/\(Push\)/.test(t)) return 'Push';
+  if (/\(Legs\)/.test(t)) return 'Legs';
+  if (/\(Upper\)|Upper Push|Upper Pull/.test(t)) return 'Upper';
+  if (/\(Arms\)/.test(t)) return 'Arms';
+  if (/Cardio/.test(t)) return 'Other';
+  if (/Full Body Heavy|Full Body.*Arms|Full Body.*Arms/.test(t)) return 'Push';
+  if (/Lower/.test(t)) return 'Legs';
+  if (/Upper/.test(t)) return 'Upper';
+  return 'Other';
+}
+
+function _hevyParseDate(s) {
+  // "2 Jun 2026, 06:20"
+  const m = s.trim().match(/^(\d+)\s+(\w+)\s+(\d{4}),\s*(\d+):(\d+)$/);
+  if (!m) return null;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const mo = months[m[2]];
+  if (mo === undefined) return null;
+  return new Date(+m[3], mo, +m[1], +m[4], +m[5]);
+}
+
+function parseHevyCSV(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const parseRow = line => {
+    const fields = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { fields.push(cur); cur = ''; }
+      else cur += c;
+    }
+    fields.push(cur);
+    return fields;
+  };
+  const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/\s+/g,'_'));
+  const rows = lines.slice(1).map(l => {
+    const vals = parseRow(l);
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i] || '');
+    return obj;
+  });
+
+  // Group rows by (start_time + end_time) key
+  const sessionMap = new Map();
+  const sessionOrder = [];
+  rows.forEach(r => {
+    const key = `${r.title}|${r.start_time}|${r.end_time}`;
+    if (!sessionMap.has(key)) { sessionMap.set(key, []); sessionOrder.push(key); }
+    sessionMap.get(key).push(r);
+  });
+
+  const sessions = [];
+  for (const key of sessionOrder) {
+    const sRows = sessionMap.get(key);
+    const r0 = sRows[0];
+    const st = _hevyParseDate(r0.start_time);
+    const et = _hevyParseDate(r0.end_time);
+    if (!st) continue;
+    const date = st.toISOString().slice(0,10);
+    const duration = et ? Math.round((et - st) / 60000) : 45;
+    const program = _hevyMapProgram(r0.title);
+    const desc = r0.description?.trim();
+    const notes = (desc && !/^\d+(\.\d+)?$/.test(desc)) ? desc : '';
+
+    // Group by exercise preserving order
+    const exMap = new Map(); const exOrder = [];
+    sRows.forEach(r => {
+      if (!exMap.has(r.exercise_title)) { exMap.set(r.exercise_title, []); exOrder.push(r.exercise_title); }
+      exMap.get(r.exercise_title).push(r);
+    });
+
+    const exercises = [];
+    for (const exKey of exOrder) {
+      const exRows = exMap.get(exKey).sort((a,b) => +a.set_index - +b.set_index);
+      const exName = _hevyMapName(exKey);
+      const exNote = exRows.find(r => r.exercise_notes)?.exercise_notes || '';
+      const sets = exRows.map((r, i) => {
+        const stype = i === 0 ? 'warmup' : 'working';
+        if (r.duration_seconds && !r.reps) {
+          return { type: stype, weight: +(r.distance_km||0), reps: Math.round(+r.duration_seconds/60) };
+        }
+        return { type: stype, weight: +(r.weight_kg||0), reps: +(r.reps||0) };
+      });
+      const totalVol = sets.filter(s=>s.type==='working').reduce((a,s)=>a+s.weight*s.reps,0);
+      exercises.push({ name: exName, sets, totalVol: Math.round(totalVol*100)/100, effort: 0, notes: exNote });
+    }
+
+    const totalVol = exercises.reduce((a,e)=>a+e.totalVol,0);
+    sessions.push({ id: genId(), date, program, duration, notes, exercises, totalVol: Math.round(totalVol*100)/100, createdAt: st.getTime() });
+  }
+  return sessions;
+}
+
+function handleHevyImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = parseHevyCSV(ev.target.result);
+      if (!parsed.length) { showToast('No sessions found in CSV.', 'error'); return; }
+      const existingDates = new Set(state.sessions.map(s => s.date));
+      const newSessions = parsed.filter(s => !existingDates.has(s.date));
+      const skipped = parsed.length - newSessions.length;
+      showConfirm('Import HEVY Data',
+        `Found ${parsed.length} sessions. Import ${newSessions.length} new sessions? (${skipped} skipped — dates already exist)`,
+        () => {
+          pushUndoState('HEVY import');
+          state.sessions = [...state.sessions, ...newSessions].sort((a,b) => a.date.localeCompare(b.date));
+          saveData();
+          renderDashboard();
+          renderSessionsPage();
+          checkNewAchievements();
+          showToast(`Imported ${newSessions.length} HEVY sessions!`, 'success');
+        }, 'Import', 'Cancel');
+    } catch(err) { showToast('Failed to parse HEVY CSV: ' + err.message, 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
 // ═══════════════════════ UTILITY ═══════════════════════
 function formatDate(dateStr) {
   if (!dateStr) return '—';
@@ -4593,7 +4845,7 @@ function calcStreak() {
 }
 
 function renderStreakWidget() {
-  const streak = calcStreak();
+  const streak = _dc ? _dc.streak : calcStreak();
   let tier = 0, flameColor = '#555', flameH = 28;
   if (streak >= 30)  { tier = 3; flameColor = '#ff4f4f'; flameH = 36; }
   else if (streak >= 14) { tier = 3; flameColor = '#ff7a2f'; flameH = 34; }
@@ -4822,15 +5074,19 @@ function updateCalSelectCount() {
 
 function calDeleteSelected() {
   if (!_calSelected.size) return;
-  const sessCount = state.sessions.filter(s => _calSelected.has(s.date)).length;
+  const toDelete = state.sessions.filter(s => _calSelected.has(s.date));
+  const sessCount = toDelete.length;
   const days = _calSelected.size;
   showConfirm('Delete Selected Days',
     `Delete ${sessCount} session${sessCount!==1?'s':''} across ${days} day${days!==1?'s':''}? This cannot be undone.`,
     () => {
       pushUndoState('Delete selected days');
+      const ids = toDelete.map(s => s.id);
       state.sessions = state.sessions.filter(s => !_calSelected.has(s.date));
       _calSelected.clear();
-      saveData(); renderDashboard(); renderCalendarPage();
+      saveData();
+      sbDeleteSessions(ids);
+      renderDashboard(); renderCalendarPage();
       updateCalSelectCount();
       showToast(`Deleted ${sessCount} session${sessCount!==1?'s':''}.`, 'success');
     });
@@ -4841,6 +5097,7 @@ function deleteCalSession(id, dateStr) {
     pushUndoState('Delete session');
     state.sessions = state.sessions.filter(s => s.id !== id);
     saveData();
+    sbDeleteSessions([id]);
     renderDashboard();
     renderCalendarPage();
     showCalDay(dateStr);
@@ -5111,6 +5368,7 @@ function renderSettingsPage() {
   renderMonthlyVolumeChart();
   renderTrainingInsights();
   renderAchievements();
+  markAchievementsViewed();
   renderSyncLog();
 }
 
@@ -5913,6 +6171,7 @@ async function initApp() {
 
   if (_supaUser) updateSyncBadge('online');
   renderDashboard();
+  checkNewAchievements();
   setTimeout(showTodayPrompt, 600);
 }
 
@@ -6012,9 +6271,12 @@ function confirmBulkDelete() {
   const label = from === to ? from : `${from || '…'} → ${to || '…'}`;
   showConfirm('Bulk Delete', `Delete ${toDelete.length} session${toDelete.length!==1?'s':''} (${label})? This cannot be undone.`, () => {
     pushUndoState('Bulk delete');
-    const ids = new Set(toDelete.map(s => s.id));
+    const idArr = toDelete.map(s => s.id);
+    const ids = new Set(idArr);
     state.sessions = state.sessions.filter(s => !ids.has(s.id));
-    saveData(); renderDashboard(); renderSessionsPage();
+    saveData();
+    sbDeleteSessions(idArr);
+    renderDashboard(); renderSessionsPage();
     document.getElementById('bulk-from').value = '';
     document.getElementById('bulk-to').value = '';
     updateBulkCount();
@@ -6545,23 +6807,25 @@ function getMuscleChipsHtml(name) {
   }).join('')}</div>`;
 }
 
+const _muscleExCache = {};
 function getMusclesForExercise(name) {
   if (!name) return [];
+  if (_muscleExCache[name] !== undefined) return _muscleExCache[name];
   const lower = name.toLowerCase();
   const libEntry = exerciseLib.find(e => e.name.toLowerCase() === lower);
   if (libEntry?.muscle) {
     const muscles = [libEntry.muscle];
     if (libEntry.secondary) libEntry.secondary.split(',').map(m=>m.trim()).filter(Boolean).forEach(m=>muscles.push(m));
-    return muscles;
+    return (_muscleExCache[name] = muscles);
   }
-  return RECOVERY_MUSCLE_MAP[name] || [];
+  return (_muscleExCache[name] = RECOVERY_MUSCLE_MAP[name] || []);
 }
 
 function renderMuscleRecovery() {
   const el = document.getElementById('recovery-grid');
   if (!el) return;
   const lastTrained = {};
-  const sorted = [...state.sessions].sort((a, b) => b.date > a.date ? 1 : -1);
+  const sorted = _dc ? _dc.sorted : [...state.sessions].sort((a, b) => b.date > a.date ? 1 : -1);
   for (const s of sorted) { (s.exercises||[]).forEach(ex => { getMusclesForExercise(ex.name).forEach(m => { if (!lastTrained[m]) lastTrained[m] = s.date; }); }); }
   const now = Date.now();
   el.innerHTML = RECOVERY_MUSCLES.map(m => {
@@ -6598,6 +6862,7 @@ const DEFAULT_EXERCISE_LIB = [
   {id:'dl-23',name:'Leg Extension',muscle:'Legs',secondary:'Core',equipment:'Machine',notes:'Quad isolation'},
   {id:'dl-24',name:'Pallof Press',muscle:'Core',secondary:'Glutes, Back',equipment:'Cable',notes:'Anti-rotation'},
   {id:'dl-25',name:'Decline Crunch',muscle:'Core',secondary:'',equipment:'Bodyweight',notes:'Rectus abdominis'},
+  {id:'dl-26',name:'Treadmill',muscle:'Cardio',secondary:'Legs',equipment:'Cardio Machine',notes:'Log Speed (kph) as weight, Duration (min) as reps'},
 ];
 
 let _exlibFilter = 'All';
@@ -6673,11 +6938,12 @@ function saveExercise() {
   const editId = document.getElementById('exlib-edit-id').value;
   const entry = { id:editId||genId(), name, muscle, equipment:document.getElementById('exlib-equipment').value, secondary:document.getElementById('exlib-secondary').value.trim(), notes:document.getElementById('exlib-notes').value.trim() };
   if (editId) { const idx=exerciseLib.findIndex(e=>e.id===editId); if(idx>=0)exerciseLib[idx]=entry; else exerciseLib.unshift(entry); } else { exerciseLib.unshift(entry); }
+  Object.keys(_muscleExCache).forEach(k => delete _muscleExCache[k]);
   saveData(); renderExerciseLib(); closeModal('exlib-modal');
   showToast(editId?'Exercise updated!':'Exercise added!', 'success');
 }
 function deleteExercise(id) {
-  showConfirm('Delete Exercise', 'Remove this exercise from the library?', () => { exerciseLib=exerciseLib.filter(e=>e.id!==id); saveData(); renderExerciseLib(); showToast('Deleted.','success'); });
+  showConfirm('Delete Exercise', 'Remove this exercise from the library?', () => { exerciseLib=exerciseLib.filter(e=>e.id!==id); Object.keys(_muscleExCache).forEach(k=>delete _muscleExCache[k]); saveData(); renderExerciseLib(); showToast('Deleted.','success'); });
 }
 
 // ── SETTINGS VISUAL FUNCTIONS ──
@@ -6733,15 +6999,146 @@ function renderTrainingInsights() {
   const secLabel=t=>`<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px">${t}</div>`;
   el.innerHTML=`<div style="margin-bottom:14px">${secLabel('Most Active Day')}<div class="dow-chart">${days.map((d,i)=>`<div class="dow-bar-col"><div class="dow-bar ${i===peakDay?'peak':''}" style="height:${Math.max((dowCounts[i]/maxDow)*52,2)}px" title="${dowCounts[i]} sessions on ${d}s"></div><div class="dow-label">${d.slice(0,1)}</div></div>`).join('')}</div><div style="font-size:0.75rem;color:var(--text2);margin-top:6px">Best: <span style="color:var(--accent);font-weight:600">${days[peakDay]}</span> (${dowCounts[peakDay]} sessions)</div></div><div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">${secLabel('Program Split')}${topPg.slice(0,4).map(([pg,cnt])=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:0.78rem;color:var(--text2)">${pg}</span><div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.round((cnt/state.sessions.length)*100)}%;background:var(--accent);border-radius:3px"></div></div><span style="font-size:0.7rem;color:var(--text3);font-family:'DM Mono',monospace;width:28px;text-align:right">${cnt}×</span></div></div>`).join('')}</div><div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">${secLabel('Last 30 Days')}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border)"><div style="font-size:0.6rem;color:var(--text3);margin-bottom:2px">SESSIONS</div><div style="font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--accent)">${last30.length}</div></div><div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border)"><div style="font-size:0.6rem;color:var(--text3);margin-bottom:2px">VOLUME</div><div style="font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--blue)">${last30Vol>=1000?(last30Vol/1000).toFixed(1)+'T':last30Vol+'kg'}</div></div></div></div><div style="border-top:1px solid var(--border);padding-top:12px">${secLabel('Top Exercises')}${Object.entries(exCounts).sort(([,a],[,b])=>b-a).slice(0,5).map(([n,c])=>`<div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:75%">${n}</span><span style="color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0">${c}×</span></div>`).join('')}</div>`;
 }
-function renderAchievements() {
-  const el=document.getElementById('achievement-grid'); if(!el)return;
-  const n=state.sessions.length,vol=state.sessions.reduce((a,s)=>a+(s.totalVol||0),0);
-  const allDates=[...new Set(state.sessions.map(s=>s.date))].sort();let best=0,run=0,prev=null;
+function getAchievementDefs() {
+  const n = state.sessions.length;
+  const vol = state.sessions.reduce((a,s) => a+(s.totalVol||0), 0);
+  const maxSingleVol = n ? Math.max(...state.sessions.map(s=>s.totalVol||0)) : 0;
+  const validDurs = state.sessions.map(s=>s.duration||0).filter(d=>d>0&&d<=300);
+  const maxDuration = validDurs.length ? Math.max(...validDurs) : 0;
+
+  const allDates = [...new Set(state.sessions.map(s=>s.date))].sort();
+  let best=0,run=0,prev=null;
   allDates.forEach(d=>{const c=new Date(d+'T00:00:00');if(prev){run=Math.round((c-prev)/86400000)===1?run+1:1;}else run=1;if(run>best)best=run;prev=c;});
-  const uEx=new Set(state.sessions.flatMap(s=>(s.exercises||[]).map(e=>e.name))).size;
-  const defs=[{icon:'🏁',name:'First Session',desc:'Log your first session',u:n>=1},{icon:'🥉',name:'10 Sessions',desc:'Log 10 sessions',u:n>=10},{icon:'🥈',name:'25 Sessions',desc:'Log 25 sessions',u:n>=25},{icon:'🥇',name:'50 Sessions',desc:'Log 50 sessions',u:n>=50},{icon:'💯',name:'Century',desc:'Log 100 sessions',u:n>=100},{icon:'💎',name:'Elite 200',desc:'Log 200 sessions',u:n>=200},{icon:'⚡',name:'3-Day Streak',desc:'Train 3 days in a row',u:best>=3},{icon:'🔥',name:'Week Warrior',desc:'Train 7 days in a row',u:best>=7},{icon:'🌟',name:'Fortnight',desc:'Train 14 days straight',u:best>=14},{icon:'🏋️',name:'10K Club',desc:'Lift 10,000 kg total',u:vol>=10000},{icon:'💪',name:'50K Beast',desc:'Lift 50,000 kg total',u:vol>=50000},{icon:'🚀',name:'100K Monster',desc:'Lift 100,000 kg total',u:vol>=100000},{icon:'🌍',name:'500K Legend',desc:'Lift 500,000 kg total',u:vol>=500000},{icon:'📚',name:'Explorer',desc:'Log 5 unique exercises',u:uEx>=5},{icon:'🎯',name:'Specialist',desc:'Log 10 unique exercises',u:uEx>=10},{icon:'🔬',name:'Experimenter',desc:'Log 20 unique exercises',u:uEx>=20},{icon:'📋',name:'Reflector',desc:'Complete 5 check-ins',u:checkins.length>=5},{icon:'🏆',name:'Dedicated',desc:'Complete 20 check-ins',u:checkins.length>=20}];
-  defs.sort((a,b)=>(b.u?1:0)-(a.u?1:0));
-  el.innerHTML=defs.map(a=>`<div class="achievement-card ${a.u?'unlocked':'locked'}" title="${a.desc}"><div class="achievement-icon">${a.icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div></div>`).join('');
+
+  const uEx = new Set(state.sessions.flatMap(s=>(s.exercises||[]).map(e=>e.name))).size;
+  const programs = new Set(state.sessions.map(s=>s.program));
+  const hasAllTypes = ['Push','Pull','Legs','Upper','Arms'].every(p=>programs.has(p));
+  const pushCount = state.sessions.filter(s=>s.program==='Push').length;
+  const pullCount = state.sessions.filter(s=>s.program==='Pull').length;
+  const legCount  = state.sessions.filter(s=>s.program==='Legs').length;
+
+  const weekCounts={};
+  state.sessions.forEach(s=>{const d=new Date(s.date+'T00:00:00');const day=d.getDay();const mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));const wk=mon.toISOString().slice(0,10);weekCounts[wk]=(weekCounts[wk]||0)+1;});
+  const maxWeek = Math.max(0,...Object.values(weekCounts));
+
+  const monthCounts={};
+  state.sessions.forEach(s=>{const m=s.date.slice(0,7);monthCounts[m]=(monthCounts[m]||0)+1;});
+  const maxMonth = Math.max(0,...Object.values(monthCounts));
+
+  const hasCardio = state.sessions.some(s=>(s.exercises||[]).some(e=>e.name.toLowerCase().includes('treadmill'))||s.program==='Cardio'||s.program==='Other');
+
+  return [
+    // Session milestones
+    {icon:'🏁',name:'First Rep',desc:'Log your first workout session',u:n>=1},
+    {icon:'🥉',name:'10 Sessions',desc:'Log 10 sessions',u:n>=10},
+    {icon:'🥈',name:'25 Sessions',desc:'Log 25 sessions',u:n>=25},
+    {icon:'🥇',name:'50 Sessions',desc:'Log 50 sessions',u:n>=50},
+    {icon:'💯',name:'Century',desc:'Log 100 sessions',u:n>=100},
+    {icon:'💎',name:'Elite 200',desc:'Log 200 sessions',u:n>=200},
+    {icon:'👑',name:'Legend 500',desc:'Log 500 sessions',u:n>=500},
+    // Streaks
+    {icon:'⚡',name:'3-Day Streak',desc:'Train 3 days in a row',u:best>=3},
+    {icon:'🔥',name:'Week Warrior',desc:'Train 7 days in a row',u:best>=7},
+    {icon:'🌟',name:'Fortnight',desc:'Train 14 days straight',u:best>=14},
+    {icon:'🏔️',name:'Iron Month',desc:'Train 30 days straight',u:best>=30},
+    // Total volume
+    {icon:'🏋️',name:'10K Club',desc:'Lift 10,000 kg total',u:vol>=10000},
+    {icon:'💪',name:'50K Beast',desc:'Lift 50,000 kg total',u:vol>=50000},
+    {icon:'🚀',name:'100K Monster',desc:'Lift 100,000 kg total',u:vol>=100000},
+    {icon:'🌍',name:'250K Titan',desc:'Lift 250,000 kg total',u:vol>=250000},
+    {icon:'🌌',name:'500K Legend',desc:'Lift 500,000 kg total',u:vol>=500000},
+    {icon:'♾️',name:'Million Kilo',desc:'Lift 1,000,000 kg total',u:vol>=1000000},
+    // Single-session volume
+    {icon:'⚡',name:'Iron 5K',desc:'Lift 5,000 kg in one session',u:maxSingleVol>=5000},
+    {icon:'🔱',name:'Titan Day',desc:'Lift 10,000 kg in one session',u:maxSingleVol>=10000},
+    // Unique exercises
+    {icon:'📚',name:'Explorer',desc:'Log 5 different exercises',u:uEx>=5},
+    {icon:'🎯',name:'Specialist',desc:'Log 10 different exercises',u:uEx>=10},
+    {icon:'🔬',name:'Experimenter',desc:'Log 20 different exercises',u:uEx>=20},
+    // Program variety
+    {icon:'🎨',name:'Full Spectrum',desc:'Log Push, Pull, Legs, Upper & Arms sessions',u:hasAllTypes},
+    {icon:'🫸',name:'Push × 10',desc:'Complete 10 Push sessions',u:pushCount>=10},
+    {icon:'🫷',name:'Pull × 10',desc:'Complete 10 Pull sessions',u:pullCount>=10},
+    {icon:'🦵',name:'Leg Day × 10',desc:'Complete 10 Legs sessions',u:legCount>=10},
+    // Consistency
+    {icon:'🗓️',name:'Quad Week',desc:'Log 4 sessions in one week',u:maxWeek>=4},
+    {icon:'📅',name:'Month Grind',desc:'Log 10 sessions in a single month',u:maxMonth>=10},
+    // Body weight & check-ins
+    {icon:'⚖️',name:'Scale Habit',desc:'Log 10 body weight entries',u:bwLog.length>=10},
+    {icon:'📊',name:'Scale Master',desc:'Log 30 body weight entries',u:bwLog.length>=30},
+    {icon:'📋',name:'First Check-in',desc:'Complete your first weekly check-in',u:checkins.length>=1},
+    {icon:'📝',name:'Reflector',desc:'Complete 5 weekly check-ins',u:checkins.length>=5},
+    {icon:'🏆',name:'Dedicated',desc:'Complete 20 weekly check-ins',u:checkins.length>=20},
+    // Session duration
+    {icon:'⏱️',name:'Marathon',desc:'Complete a session over 90 minutes',u:maxDuration>=90},
+    // Cardio
+    {icon:'🏃',name:'Cardio Starter',desc:'Log a session with treadmill or cardio',u:hasCardio},
+  ];
+}
+
+function renderAchievements() {
+  const el = document.getElementById('achievement-grid'); if (!el) return;
+  const defs = getAchievementDefs();
+  defs.sort((a,b) => (b.u?1:0)-(a.u?1:0));
+  el.innerHTML = defs.map(a => `<div class="achievement-card ${a.u?'unlocked':'locked'}" title="${a.desc}"><div class="achievement-icon">${a.icon}</div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div></div>`).join('');
+}
+
+function checkNewAchievements() {
+  const defs = getAchievementDefs();
+  const poppedRaw = localStorage.getItem('iron_ach_popped');
+  const firstRun = poppedRaw === null;
+  const popped = new Set(JSON.parse(poppedRaw || '[]'));
+  const viewed = new Set(JSON.parse(localStorage.getItem('iron_ach_viewed') || '[]'));
+  const unlocked = defs.filter(a => a.u);
+
+  if (firstRun) {
+    unlocked.forEach(a => { popped.add(a.name); viewed.add(a.name); });
+    localStorage.setItem('iron_ach_popped', JSON.stringify([...popped]));
+    localStorage.setItem('iron_ach_viewed', JSON.stringify([...viewed]));
+  } else {
+    const newPops = unlocked.filter(a => !popped.has(a.name));
+    if (newPops.length) {
+      newPops.forEach(a => popped.add(a.name));
+      localStorage.setItem('iron_ach_popped', JSON.stringify([...popped]));
+      _achQueue.push(...newPops);
+      if (!_achShowing) showNextAchPopup();
+    }
+  }
+  updateSettingsAchBadge();
+}
+
+function showNextAchPopup() {
+  if (!_achQueue.length) { _achShowing = false; return; }
+  _achShowing = true;
+  const a = _achQueue.shift();
+  document.getElementById('ach-popup')?.remove();
+  const el = document.createElement('div');
+  el.id = 'ach-popup';
+  el.innerHTML = `<div class="ach-label">✨ Achievement Unlocked</div><div class="ach-body"><div class="ach-big-icon">${a.icon}</div><div><div class="ach-title">${a.name}</div><div class="ach-sub">${a.desc}</div></div></div>`;
+  document.body.appendChild(el);
+  el.onclick = () => { el.classList.add('ach-out'); setTimeout(() => { el.remove(); showNextAchPopup(); }, 450); };
+  setTimeout(() => {
+    if (!el.classList.contains('ach-out')) {
+      el.classList.add('ach-out');
+      setTimeout(() => { el.remove(); showNextAchPopup(); }, 450);
+    }
+  }, 4200);
+}
+
+function updateSettingsAchBadge() {
+  const defs = getAchievementDefs();
+  const viewed = new Set(JSON.parse(localStorage.getItem('iron_ach_viewed') || '[]'));
+  const count = defs.filter(a => a.u && !viewed.has(a.name)).length;
+  const badge = document.getElementById('settings-ach-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+}
+
+function markAchievementsViewed() {
+  const defs = getAchievementDefs();
+  const viewed = new Set(JSON.parse(localStorage.getItem('iron_ach_viewed') || '[]'));
+  defs.filter(a => a.u).forEach(a => viewed.add(a.name));
+  localStorage.setItem('iron_ach_viewed', JSON.stringify([...viewed]));
+  updateSettingsAchBadge();
 }
 
 // ── SUPABASE SYNC ──
@@ -6816,6 +7213,12 @@ async function onSignedIn(){
   if(btn){btn.textContent='Sign Out';btn.onclick=()=>syncBadgeClick();}
   if(act)act.style.display='block';
   await pullFromSupabase();
+}
+
+async function sbDeleteSessions(ids){
+  if(!_syncEnabled||!_supaUser||!ids||!ids.length)return;
+  try{await supa.from('iron_sessions').delete().eq('user_id',_supaUser.id).in('session_id',ids);}
+  catch(e){console.warn('sbDeleteSessions:',e);}
 }
 
 async function sbGetSessions(){try{const{data,error}=await supa.from('iron_sessions').select('session_id,data').eq('user_id',_supaUser.id);if(error){console.warn('sbGetSessions:',error.message);return null;}return data||[];}catch(e){console.warn('sbGetSessions:',e);return null;}}
