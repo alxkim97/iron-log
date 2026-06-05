@@ -728,10 +728,22 @@
   .sets-grid {
     padding: 12px 16px;
     display: grid;
-    grid-template-columns: auto 80px 80px 80px auto;
+    grid-template-columns: auto 60px 80px 80px 80px auto;
     gap: 6px 10px;
     align-items: center;
   }
+  .set-prev {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: color 0.15s, background 0.15s;
+    text-align: center;
+  }
+  .set-prev:hover { color: var(--accent); background: var(--accent-dim); }
   .sets-grid-header {
     font-family: 'DM Mono', monospace;
     font-size: 0.6rem;
@@ -1917,7 +1929,7 @@
     </button>
   </div>
   <div class="sidebar-bottom">
-    <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text3)">v1.8.0</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--text3)">v1.9.0</div>
   </div>
 </nav>
 
@@ -2533,7 +2545,7 @@
       <div class="card">
         <div class="settings-row">
           <div><div class="settings-row-label">Iron Log</div><div class="settings-row-sub">Workout Session Logger — Desktop-first PWA</div></div>
-          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent)">v1.8.0</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent)">v1.9.0</div>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Storage</div><div class="settings-row-sub">All data stored to ~/Documents/IronLog/ (Electron file storage)</div></div>
@@ -3477,6 +3489,7 @@ function addExerciseBlock(data) {
     <div class="last-perf-hint" id="lastperf-${id}"></div>
     <div class="sets-grid" id="setsgrid-${id}">
       <div class="sets-grid-header">Set</div>
+      <div class="sets-grid-header" title="Last used weight × reps">Prev</div>
       <div class="sets-grid-header">Weight (kg)</div>
       <div class="sets-grid-header">Reps</div>
       <div class="sets-grid-header">Volume</div>
@@ -3485,6 +3498,7 @@ function addExerciseBlock(data) {
         const isWarmup = set.type === 'warmup';
         return `
           <div class="set-label ${isWarmup ? 'warmup-label' : ''}" data-exid="${id}" data-setrow="${si}">${isWarmup ? 'WU' : 'W' + si}</div>
+          <div class="set-prev" id="prev-${id}-${si}" data-exid="${id}" data-setrow="${si}" onclick="applyPrevSet('${id}',${si})" title="Click to copy previous values">—</div>
           <input type="number" class="set-input" min="0" step="0.5" placeholder="kg" value="${set.weight || ''}" data-field="weight" data-set="${si}" data-exid="${id}" data-setrow="${si}" oninput="onSetInput(this)">
           <input type="number" class="set-input" min="0" placeholder="reps" value="${set.reps || ''}" data-field="reps" data-set="${si}" data-exid="${id}" data-setrow="${si}" oninput="onSetInput(this)">
           <div class="set-vol" id="vol-${id}-${si}" data-exid="${id}" data-setrow="${si}">—</div>
@@ -3517,7 +3531,7 @@ function addExerciseBlock(data) {
     if (set.weight && set.reps) {
       const vol = parseFloat(set.weight) * parseInt(set.reps);
       const el = document.getElementById(`vol-${id}-${si}`);
-      if (el) el.textContent = vol + ' kg';
+      if (el) el.textContent = (Math.round(vol * 10) / 10) + ' kg';
     }
   });
   calcExVol(id);
@@ -3613,7 +3627,29 @@ function onSetInput(input) {
     const w = parseFloat(wInput.value) || parseFloat(wInput.placeholder) || 0;
     const r = parseInt(rInput.value) || parseInt(rInput.placeholder) || 0;
     const v = w * r;
-    volEl.textContent = (w && r) ? v + ' kg' : '—';
+    volEl.textContent = (w && r) ? (Math.round(v * 10) / 10) + ' kg' : '—';
+  }
+  // Auto-fill subsequent empty working sets
+  const curLabel = grid.querySelector(`.set-label[data-setrow="${si}"]`);
+  if (curLabel && !curLabel.classList.contains('warmup-label')) {
+    [...grid.querySelectorAll('input[data-field="weight"]')].forEach(wi => {
+      const wiSi = wi.dataset.set;
+      if (parseInt(wiSi) <= parseInt(si)) return;
+      const wiLabel = grid.querySelector(`.set-label[data-setrow="${wiSi}"]`);
+      if (wiLabel && wiLabel.classList.contains('warmup-label')) return;
+      const wiR = grid.querySelector(`input[data-field="reps"][data-set="${wiSi}"]`);
+      let changed = false;
+      if (!wi.value && wInput && wInput.value) { wi.value = wInput.value; changed = true; }
+      if (wiR && !wiR.value && rInput && rInput.value) { wiR.value = rInput.value; changed = true; }
+      if (changed) {
+        const wiVol = document.getElementById(`vol-${exid}-${wiSi}`);
+        if (wiVol) {
+          const ww = parseFloat(wi.value) || 0;
+          const rr = parseInt(wiR?.value) || 0;
+          wiVol.textContent = (ww && rr) ? (Math.round(ww * rr * 10) / 10) + ' kg' : '—';
+        }
+      }
+    });
   }
   calcExVol(exid);
   updateTotalVolDisplay();
@@ -3631,7 +3667,7 @@ function calcExVol(exid) {
     total += w * r;
   });
   const badge = document.getElementById('exvol-' + exid);
-  if (badge) badge.textContent = total.toLocaleString() + ' kg';
+  if (badge) badge.textContent = (Math.round(total * 10) / 10).toLocaleString() + ' kg';
   return total;
 }
 
@@ -4049,7 +4085,7 @@ function _buildDashCache() {
   });
 
   let streak = 0;
-  let cur = new Date(todayStr + 'T00:00:00');
+  let cur = new Date(todayStr);
   while (dateSet.has(cur.toISOString().slice(0, 10))) { streak++; cur.setDate(cur.getDate() - 1); }
 
   _dc = { sorted, thisWeek, weekStartStr, allVol, weekVol, totalTime, streak, exFreq, progDist, dateSet };
@@ -6168,7 +6204,10 @@ async function initApp() {
   restoreTheme();
   await loadData();
   if (!exerciseLib.length) { exerciseLib = DEFAULT_EXERCISE_LIB.map(e => ({...e})); }
-
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (session?.user) { _supaUser = session.user; await onSignedIn(); }
+  } catch(e) { console.warn('getSession:', e); }
   if (_supaUser) updateSyncBadge('online');
   renderDashboard();
   checkNewAchievements();
@@ -6419,6 +6458,7 @@ function addSetRow(exid) {
   const si = maxRow + 1;
   const rowEls = [
     `<div class="set-label" data-exid="${exid}" data-setrow="${si}">W${grid.querySelectorAll('.set-label:not(.warmup-label)').length + 1}</div>`,
+    `<div class="set-prev" id="prev-${exid}-${si}" data-exid="${exid}" data-setrow="${si}" onclick="applyPrevSet('${exid}',${si})" title="Click to copy previous values">—</div>`,
     `<input type="number" class="set-input" min="0" step="0.5" placeholder="kg" data-field="weight" data-set="${si}" data-exid="${exid}" data-setrow="${si}" oninput="onSetInput(this)">`,
     `<input type="number" class="set-input" min="0" placeholder="reps" data-field="reps" data-set="${si}" data-exid="${exid}" data-setrow="${si}" oninput="onSetInput(this)">`,
     `<div class="set-vol" id="vol-${exid}-${si}" data-exid="${exid}" data-setrow="${si}">—</div>`,
@@ -6688,6 +6728,7 @@ function autoLoadExercise(exid, name) {
   updateLastPerf(exid, name);
   setActiveExContext(exid, name);
   if (!found) return;
+  updateSetPrevValues(exid, found);
   const grid = document.getElementById('setsgrid-' + exid);
   if (!grid) return;
   const wInputs = [...grid.querySelectorAll('input[data-field="weight"]')];
@@ -6702,6 +6743,35 @@ function autoLoadExercise(exid, name) {
     onSetInput(wInputs[i]);
   });
   updateTotalVolDisplay();
+}
+function updateSetPrevValues(exid, found) {
+  if (!found || !found.sets) return;
+  found.sets.forEach((set, i) => {
+    const prevEl = document.getElementById(`prev-${exid}-${i}`);
+    if (!prevEl) return;
+    const w = set.weight || 0;
+    const r = set.reps || 0;
+    if (w && r) {
+      prevEl.textContent = w + '×' + r;
+      prevEl.dataset.pw = w;
+      prevEl.dataset.pr = r;
+    } else {
+      prevEl.textContent = '—';
+      delete prevEl.dataset.pw;
+      delete prevEl.dataset.pr;
+    }
+  });
+}
+function applyPrevSet(exid, si) {
+  const prevEl = document.getElementById(`prev-${exid}-${si}`);
+  if (!prevEl || !prevEl.dataset.pw) return;
+  const grid = document.getElementById('setsgrid-' + exid);
+  if (!grid) return;
+  const wInput = grid.querySelector(`input[data-field="weight"][data-set="${si}"]`);
+  const rInput = grid.querySelector(`input[data-field="reps"][data-set="${si}"]`);
+  if (wInput) wInput.value = prevEl.dataset.pw;
+  if (rInput) rInput.value = prevEl.dataset.pr || '';
+  if (wInput) onSetInput(wInput);
 }
 
 // ── MANUAL TEMPLATE CREATION ──
@@ -7248,8 +7318,6 @@ async function forcePushToCloud(){
 }
 setInterval(async()=>{if(!_syncEnabled||!_supaUser)return;const results=await Promise.all([sbSetSessions(state.sessions),sbSet('iron_bwlog',bwLog),sbSet('iron_templates',templates),sbSet('iron_checkins',checkins),sbSet('iron_walkdata',walkData),sbSet('iron_exerciselib',exerciseLib)]);const ok=results.every(Boolean);if(ok){_lastSyncedAt=new Date();updateSyncBadge('online');}else updateSyncBadge('error');},5*60*1000);
 if(window.electronAPI?.onMenuPushCloud){window.electronAPI.onMenuPushCloud(()=>forcePushToCloud());window.electronAPI.onMenuPullCloud(()=>pullFromSupabase());}
-(async()=>{try{const{data:{session}}=await supa.auth.getSession();if(session?.user){_supaUser=session.user;await onSignedIn();}}catch(e){console.warn('getSession:',e);}})();
-
 // ── SESSION MODAL DIRTY TRACKING ──
 document.getElementById('session-modal').addEventListener('input', e => {
   if (e.target.closest('.exercise-name-input, .set-input, #f-date, #f-duration, #f-notes, #f-program, .exercise-note-input'))
