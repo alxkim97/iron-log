@@ -3499,8 +3499,8 @@ function addExerciseBlock(data) {
         return `
           <div class="set-label ${isWarmup ? 'warmup-label' : ''}" data-exid="${id}" data-setrow="${si}">${isWarmup ? 'WU' : 'W' + si}</div>
           <div class="set-prev" id="prev-${id}-${si}" data-exid="${id}" data-setrow="${si}" onclick="applyPrevSet('${id}',${si})" title="Click to copy previous values">—</div>
-          <input type="number" class="set-input" min="0" step="0.5" placeholder="kg" value="${set.weight || ''}" data-field="weight" data-set="${si}" data-exid="${id}" data-setrow="${si}" oninput="onSetInput(this)">
-          <input type="number" class="set-input" min="0" placeholder="reps" value="${set.reps || ''}" data-field="reps" data-set="${si}" data-exid="${id}" data-setrow="${si}" oninput="onSetInput(this)">
+          <input type="number" class="set-input" min="0" step="0.5" placeholder="kg" value="${set.weight || ''}" data-field="weight" data-set="${si}" data-exid="${id}" data-setrow="${si}" oninput="onSetInput(this)" onchange="onSetChange(this)">
+          <input type="number" class="set-input" min="0" placeholder="reps" value="${set.reps || ''}" data-field="reps" data-set="${si}" data-exid="${id}" data-setrow="${si}" oninput="onSetInput(this)" onchange="onSetChange(this)">
           <div class="set-vol" id="vol-${id}-${si}" data-exid="${id}" data-setrow="${si}">—</div>
           <button class="set-remove" tabindex="-1" data-exid="${id}" data-setrow="${si}" onclick="removeSetRow('${id}',${si})" title="Remove this set">✕</button>
         `;
@@ -3629,28 +3629,37 @@ function onSetInput(input) {
     const v = w * r;
     volEl.textContent = (w && r) ? (Math.round(v * 10) / 10) + ' kg' : '—';
   }
-  // Auto-fill subsequent empty working sets
+  calcExVol(exid);
+  updateTotalVolDisplay();
+}
+// Auto-fill fires on change (blur) so the full value is captured, not mid-type digits
+function onSetChange(input) {
+  const exid = input.dataset.exid;
+  const si = input.dataset.set;
+  const grid = document.getElementById('setsgrid-' + exid);
+  if (!grid) return;
   const curLabel = grid.querySelector(`.set-label[data-setrow="${si}"]`);
-  if (curLabel && !curLabel.classList.contains('warmup-label')) {
-    [...grid.querySelectorAll('input[data-field="weight"]')].forEach(wi => {
-      const wiSi = wi.dataset.set;
-      if (parseInt(wiSi) <= parseInt(si)) return;
-      const wiLabel = grid.querySelector(`.set-label[data-setrow="${wiSi}"]`);
-      if (wiLabel && wiLabel.classList.contains('warmup-label')) return;
-      const wiR = grid.querySelector(`input[data-field="reps"][data-set="${wiSi}"]`);
-      let changed = false;
-      if (!wi.value && wInput && wInput.value) { wi.value = wInput.value; changed = true; }
-      if (wiR && !wiR.value && rInput && rInput.value) { wiR.value = rInput.value; changed = true; }
-      if (changed) {
-        const wiVol = document.getElementById(`vol-${exid}-${wiSi}`);
-        if (wiVol) {
-          const ww = parseFloat(wi.value) || 0;
-          const rr = parseInt(wiR?.value) || 0;
-          wiVol.textContent = (ww && rr) ? (Math.round(ww * rr * 10) / 10) + ' kg' : '—';
-        }
+  if (!curLabel || curLabel.classList.contains('warmup-label')) return;
+  const wInput = grid.querySelector(`input[data-field="weight"][data-set="${si}"]`);
+  const rInput = grid.querySelector(`input[data-field="reps"][data-set="${si}"]`);
+  [...grid.querySelectorAll('input[data-field="weight"]')].forEach(wi => {
+    const wiSi = wi.dataset.set;
+    if (parseInt(wiSi) <= parseInt(si)) return;
+    const wiLabel = grid.querySelector(`.set-label[data-setrow="${wiSi}"]`);
+    if (wiLabel && wiLabel.classList.contains('warmup-label')) return;
+    const wiR = grid.querySelector(`input[data-field="reps"][data-set="${wiSi}"]`);
+    let changed = false;
+    if (!wi.value && wInput && wInput.value) { wi.value = wInput.value; changed = true; }
+    if (wiR && !wiR.value && rInput && rInput.value) { wiR.value = rInput.value; changed = true; }
+    if (changed) {
+      const wiVol = document.getElementById(`vol-${exid}-${wiSi}`);
+      if (wiVol) {
+        const ww = parseFloat(wi.value) || 0;
+        const rr = parseInt(wiR?.value) || 0;
+        wiVol.textContent = (ww && rr) ? (Math.round(ww * rr * 10) / 10) + ' kg' : '—';
       }
-    });
-  }
+    }
+  });
   calcExVol(exid);
   updateTotalVolDisplay();
 }
@@ -6459,8 +6468,8 @@ function addSetRow(exid) {
   const rowEls = [
     `<div class="set-label" data-exid="${exid}" data-setrow="${si}">W${grid.querySelectorAll('.set-label:not(.warmup-label)').length + 1}</div>`,
     `<div class="set-prev" id="prev-${exid}-${si}" data-exid="${exid}" data-setrow="${si}" onclick="applyPrevSet('${exid}',${si})" title="Click to copy previous values">—</div>`,
-    `<input type="number" class="set-input" min="0" step="0.5" placeholder="kg" data-field="weight" data-set="${si}" data-exid="${exid}" data-setrow="${si}" oninput="onSetInput(this)">`,
-    `<input type="number" class="set-input" min="0" placeholder="reps" data-field="reps" data-set="${si}" data-exid="${exid}" data-setrow="${si}" oninput="onSetInput(this)">`,
+    `<input type="number" class="set-input" min="0" step="0.5" placeholder="kg" data-field="weight" data-set="${si}" data-exid="${exid}" data-setrow="${si}" oninput="onSetInput(this)" onchange="onSetChange(this)">`,
+    `<input type="number" class="set-input" min="0" placeholder="reps" data-field="reps" data-set="${si}" data-exid="${exid}" data-setrow="${si}" oninput="onSetInput(this)" onchange="onSetChange(this)">`,
     `<div class="set-vol" id="vol-${exid}-${si}" data-exid="${exid}" data-setrow="${si}">—</div>`,
     `<button class="set-remove" data-exid="${exid}" data-setrow="${si}" onclick="removeSetRow('${exid}',${si})" title="Remove this set">✕</button>`
   ];
