@@ -1,0 +1,32 @@
+{
+  "name": "iron-log",
+  "version": "1.9.0",
+  "description": "IRON LOG - Workout Session Logger",
+  "main": "main.js",
+  "author": "Alex",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "start-safe": "electron . --disable-gpu --disable-software-rasterizer",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.alex.ironlog",
+    "productName": "Iron Log",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "assets/**/*",
+      "vendor/**/*"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "assets/icon.ico"
+    }
+  }
+}
