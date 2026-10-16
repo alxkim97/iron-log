@@ -839,12 +839,12 @@ button.tl-row:hover { background: var(--surface-2); }
 .bm { display: flex; gap: 6px; justify-content: center; }
 .bm-fig { margin: 0; display: flex; flex-direction: column; align-items: center; }
 .bm-fig svg { width: 100%; height: auto; display: block; }
-.bm-md .bm-fig { width: 120px; }
-.bm-sm .bm-fig { width: 84px; }
+.bm-md .bm-fig { width: 150px; }
+.bm-sm .bm-fig { width: 108px; }
 .bm-fig figcaption { font-size: 11px; color: var(--text3); font-weight: 600; margin-top: 2px; }
-.bm-base > * { fill: var(--surface-3); }
-.bm-m { fill: transparent; }
-.bm-m.on { fill: var(--accent); fill-opacity: var(--o); stroke: var(--surface); stroke-width: .6; }
+.bm-p { fill: var(--text3); fill-opacity: .34; stroke: var(--surface); stroke-width: .7; vector-effect: non-scaling-stroke; }
+.bm-p.on { fill: var(--accent); fill-opacity: var(--o); }
+.bm-hair { fill: var(--text3); fill-opacity: .55; }
 .dx-map { display: flex; gap: 16px; align-items: center; padding: 12px; border-radius: 14px; background: var(--surface-2); flex-wrap: wrap; }
 .dx-mus { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 4px; }
 .dx-mus .field-label { margin-bottom: 2px; }
