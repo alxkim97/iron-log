@@ -7,6 +7,7 @@ import {
 import { today, addMonths, monthStart, clock, relDay } from './dates.js'
 import { esc, icon, toast, closeTopModal, modalOpen, openModal } from './ui.js'
 import { applyTheme } from './theme.js'
+import { bodySprite } from './bodymap.js'
 import { initUpdateReload } from './swUpdate.js'
 import { renderAuth, logo } from './views/auth.js'
 import { renderToday } from './views/today.js'
@@ -28,6 +29,8 @@ const isPhone = () => PHONE.matches
 
 applyTheme(state.device.theme)
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(state.device.theme))
+
+document.body.insertAdjacentHTML('afterbegin', bodySprite())
 
 // ── Boot / auth ──
 async function boot() {

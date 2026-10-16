@@ -4,6 +4,7 @@ import { today, addDays, weekStart, shortDate, fullDate, agoDays, DOW_SHORT, mon
 import { fmtKg, fmtVol, fmtSet, round1, programColor, PROGRAMS } from '../model.js'
 import { lineChart, columns } from '../charts.js'
 import { guideBlock } from '../guideview.js'
+import { exThumb } from '../components.js'
 
 const TABS = [['exercises', 'Exercises'], ['stats', 'Stats'], ['awards', 'Awards']]
 
@@ -25,7 +26,7 @@ function exerciseList() {
       ${rows.map(h => {
         const best = Math.max(...h.entries.map(e => e.st.maxW))
         const cardio = isCardio(h.name)
-        return `<button type="button" class="ex-row${state.ui.exercise?.toLowerCase() === h.key ? ' on' : ''}" data-act="exercise" data-name="${esc(h.name)}">
+        return `<button type="button" class="ex-row${state.ui.exercise?.toLowerCase() === h.key ? ' on' : ''}" data-act="exercise" data-name="${esc(h.name)}">${exThumb(h.name)}
           <span class="ex-row-main"><b>${esc(h.name)}</b><span>${esc(muscles(h.name).primary || '—')} · ${h.entries.length}× · ${esc(agoDays(h.entries.at(-1).date))}</span></span>
           ${!cardio && best ? `<span class="ex-row-best">${esc(fmtKg(best))}<small> kg</small></span>` : ''}
         </button>`

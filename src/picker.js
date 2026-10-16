@@ -3,6 +3,7 @@
 import { openModal, esc, icon } from './ui.js'
 import { library, exerciseIndex, muscles } from './store.js'
 import { MUSCLE_KEYS } from './model.js'
+import { exThumb } from './components.js'
 import { agoDays, addDays, today } from './dates.js'
 
 function candidates() {
@@ -70,9 +71,9 @@ export function pickExercise({ title = 'Add exercise', exclude = [], similarTo =
       const others = similar.length ? rows.filter(c => c.rel < 2) : rows
       const row = c => {
         const mu = muscles(c.name)
-        return `<button type="button" class="pick-row" data-name="${esc(c.name)}">
-          <span class="pick-name">${esc(c.name)}</span>
-          <span class="pick-meta">${esc(mu.primary || '—')}${c.n ? ` · ${c.n}× · ${esc(agoDays(c.last))}` : ''}</span>
+        return `<button type="button" class="pick-row" data-name="${esc(c.name)}">${exThumb(c.name)}
+          <span class="pick-text"><span class="pick-name">${esc(c.name)}</span>
+          <span class="pick-meta">${esc(mu.primary || '—')}${c.n ? ` · ${c.n}× · ${esc(agoDays(c.last))}` : ''}</span></span>
         </button>`
       }
       const exact = all.some(c => c.name.toLowerCase() === q)

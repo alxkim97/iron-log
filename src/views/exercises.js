@@ -3,6 +3,7 @@
 import { esc, icon, openModal, confirmBox, toast } from '../ui.js'
 import { state, library, historyFor, blobOp, saveSessions, muscles, routine, setRoutine } from '../store.js'
 import { MUSCLE_KEYS, DEFAULT_LIBRARY } from '../model.js'
+import { exThumb } from '../components.js'
 import { agoDays } from '../dates.js'
 
 export function renderExercises() {
@@ -30,7 +31,7 @@ export function renderExercises() {
         ${rows.map(e => {
           const h = historyFor(e.name)
           return `<button type="button" class="lib-card" data-act="lib-edit" data-name="${esc(e.name)}">
-            <b>${esc(e.name)}</b>
+            <span class="lib-head">${exThumb(e.name)}<b>${esc(e.name)}</b></span>
             <span class="lib-mus">${e.muscle ? `<span class="mchip">${esc(e.muscle)}</span>` : '<span class="mchip warn">No muscle</span>'}${(e.secondary || []).map(m => `<span class="mchip ghost">${esc(m)}</span>`).join('')}${e.guessed ? '<span class="mchip ghost">guessed</span>' : ''}</span>
             <span class="muted small">${h ? `${h.entries.length}× · last ${esc(agoDays(h.entries.at(-1).date))}` : 'Never logged'}${e.equipment ? ` · ${esc(e.equipment)}` : ''}</span>
           </button>`

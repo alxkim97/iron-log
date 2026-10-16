@@ -2,6 +2,7 @@ import { esc, icon, openModal, confirmBox, toast } from '../ui.js'
 import { state, routine, setRoutine, lastFor, isCardio } from '../store.js'
 import { cloneRoutine, sortedDays, DEFAULT_ROUTINE } from '../routine.js'
 import { PROGRAMS, programColor, fmtSet } from '../model.js'
+import { exThumb } from '../components.js'
 import { DOW_LONG, DOW_SHORT, dow, today } from '../dates.js'
 import { pickExercise } from '../picker.js'
 
@@ -21,7 +22,7 @@ export function renderRoutine() {
               <h2>${esc(d.name)}</h2>
               <button class="icon-btn small" data-act="day-edit" data-id="${esc(d.id)}" aria-label="Edit ${esc(d.name)}">${icon('edit', 16)}</button>
             </header>
-            <ol class="day-ex">${d.exercises.map(e => `<li><span>${esc(e.name)}</span><em>${e.sets} × ${esc(e.reps || '—')}</em></li>`).join('') || '<li class="muted">No exercises</li>'}</ol>
+            <ol class="day-ex">${d.exercises.map(e => `<li>${exThumb(e.name)}<span>${esc(e.name)}</span><em>${e.sets} × ${esc(e.reps || '—')}</em></li>`).join('') || '<li class="muted">No exercises</li>'}</ol>
             <button class="btn soft small block" data-act="start" data-day="${esc(d.id)}">${icon('play', 14)} Start ${esc(d.name)}</button>
           </section>`).join('')}
         <button class="day-add" data-act="day-new">${icon('plus', 22)}<span>Add a day</span></button>
@@ -65,7 +66,7 @@ export function editDay(id, rerender) {
           ${day.exercises.map((e, i) => {
             const last = lastFor(e.name)
             return `<div class="rex" data-i="${i}">
-              <button type="button" class="rex-name" data-x="swap"><b>${esc(e.name)}</b><small>${last ? esc(`last: ${last.ex.sets.filter(s => s.type !== 'warmup').map(s => fmtSet(s, isCardio(e.name))).join(', ')}`) : 'not done yet'}</small></button>
+              <button type="button" class="rex-name" data-x="swap">${exThumb(e.name)}<span class="rex-text"><b>${esc(e.name)}</b><small>${last ? esc(`last: ${last.ex.sets.filter(s => s.type !== 'warmup').map(s => fmtSet(s, isCardio(e.name))).join(', ')}`) : 'not done yet'}</small></span></button>
               <input data-e="sets" inputmode="numeric" value="${e.sets}" aria-label="Sets">
               <input data-e="reps" value="${esc(e.reps || '')}" placeholder="8–12" aria-label="Reps">
               <span class="rex-btns">

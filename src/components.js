@@ -2,8 +2,11 @@
 // and the one delegated click handler in main.js.
 import { esc, icon } from './ui.js'
 import { programColor, MUSCLES, fmtVol, fmtKg } from './model.js'
-import { sessionVol, muscleSets, lastTrained, routine, sortedSessions, isCardio } from './store.js'
+import { sessionVol, muscleSets, lastTrained, routine, sortedSessions, isCardio, muscles } from './store.js'
+import { exIcon } from './bodymap.js'
 import { today, weekStart, addDays, relDay, daysBetween, DOW_SHORT } from './dates.js'
+
+export const exThumb = name => exIcon(muscles(name))
 
 export const pchip = p => `<span class="pchip static on" style="--c:${programColor(p)}">${esc(p)}</span>`
 

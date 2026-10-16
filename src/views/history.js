@@ -1,12 +1,11 @@
 import { esc, icon, openModal, confirmBox, toast, seg } from '../ui.js'
 import { state, sortedSessions, sessionVol, sessionById, isCardio, bestFor, deleteSessions, saveSession, muscles } from '../store.js'
 import { today, addMonths, monthStart, monthYear, addDays, dow, longDate, shortDate, DOW_SHORT } from '../dates.js'
-import { bodyMap, sessionLevels } from '../bodymap.js'
+import { muscleBreakdown } from '../bodymap.js'
 import { photoImg, viewPhotos } from '../photos.js'
 import { openGuide } from '../guideview.js'
-import { round1 } from '../model.js'
 import { programColor, fmtVol, fmtSet, exerciseStats } from '../model.js'
-import { sessionRow, pchip } from '../components.js'
+import { sessionRow, pchip, exThumb } from '../components.js'
 
 export const historyTitle = () => monthYear(state.ui.month || monthStart(today()))
 
@@ -100,11 +99,7 @@ export function openSessionDetail(id, { onEdit, onRepeat, rerender }) {
         <div><b>${sets}</b><span>sets</span></div>
         <div><b>${esc(fmtVol(sessionVol(s)))}</b><span>volume</span></div>
       </div>
-      ${(() => {
-        const { levels, sets: ms } = sessionLevels(s, muscles)
-        const top = Object.entries(ms).sort((a, b) => b[1] - a[1])
-        return top.length ? `<div class="dx-map">${bodyMap(levels)}<div class="dx-mus"><p class="field-label">Muscles worked</p>${top.map(([k, v]) => `<div class="dx-mrow"><span>${esc(k)}</span><i style="--w:${Math.min(100, v / 6 * 100)}%"></i><b>${round1(v)}</b></div>`).join('')}<p class="muted small">Working sets · secondary counts half</p></div></div>` : ''
-      })()}
+      ${muscleBreakdown(s, muscles)}
       ${s.photos?.length ? `<div class="ph-row">${s.photos.map((p, i) => `<button type="button" class="ph-thumb" data-photo-i="${i}">${photoImg(p.path)}</button>`).join('')}</div>` : ''}
       ${s.exercises.map(e => {
         const cardio = isCardio(e.name)
@@ -112,7 +107,7 @@ export function openSessionDetail(id, { onEdit, onRepeat, rerender }) {
         const best = cardio ? null : bestFor(e.name)
         const isPr = best && st.maxW > 0 && st.maxW >= best.maxW
         return `<div class="dx">
-          <div class="dx-head"><button type="button" class="link" data-ex-link="${esc(e.name)}">${esc(e.name)}</button><button type="button" class="icon-btn small" data-guide="${esc(e.name)}" aria-label="How to do ${esc(e.name)}" title="How to">${icon('info', 15)}</button>${isPr ? `<span class="pr-badge">${icon('trophy', 12)} Best</span>` : ''}${!cardio && st.vol ? `<span class="muted small">${esc(fmtVol(st.vol))}</span>` : ''}</div>
+          <div class="dx-head">${exThumb(e.name)}<button type="button" class="link" data-ex-link="${esc(e.name)}">${esc(e.name)}</button><button type="button" class="icon-btn small" data-guide="${esc(e.name)}" aria-label="How to do ${esc(e.name)}" title="How to">${icon('info', 15)}</button>${isPr ? `<span class="pr-badge">${icon('trophy', 12)} Best</span>` : ''}${!cardio && st.vol ? `<span class="muted small">${esc(fmtVol(st.vol))}</span>` : ''}</div>
           <div class="dx-sets">${e.sets.map((x, i) => `<span class="dx-set${x.type === 'warmup' ? ' warm' : ''}"><i>${x.type === 'warmup' ? 'W' : e.sets.slice(0, i + 1).filter(y => y.type !== 'warmup').length}</i>${esc(fmtSet(x, cardio))}</span>`).join('')}</div>
           ${e.note ? `<p class="dx-note">${icon('note', 13)} ${esc(e.note)}</p>` : ''}
         </div>`

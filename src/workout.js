@@ -15,6 +15,8 @@ import { PROGRAMS, programColor, parseRepRange, suggestNext, fmtKg, fmtSet, exer
 import { dayById, dayForDate } from './routine.js'
 import { today, clock, longDate, relDay, shortDate } from './dates.js'
 import { pickExercise } from './picker.js'
+import { bodyMap, sessionLevels, muscleBreakdown } from './bodymap.js'
+import { exThumb } from './components.js'
 import { startRest, stopRest, adjustRest, restBar, restoreRest, setRestEndHandler, unlockAudio, restState } from './timer.js'
 
 const LIVE_KEY = 'il_draft'
@@ -134,6 +136,9 @@ function open(d) {
   if (d.mode === 'live') keepAwake(true)
 }
 
+// Only ticked sets count, so the map fills in as the workout goes.
+const doneSession = d => ({ exercises: d.exercises.map(e => ({ name: e.name, sets: e.sets.filter(s => s.done) })) })
+
 const cardioLabels = name => isCardio(name) ? ['km/h', 'min'] : ['kg', 'reps']
 
 function exerciseCard(e, i, d) {
@@ -145,6 +150,7 @@ function exerciseCard(e, i, d) {
   return `
     <section class="wk-ex" data-ex="${e.uid}">
       <header class="wk-ex-head">
+        ${exThumb(e.name)}
         <div class="wk-ex-title">
           <button type="button" class="wk-ex-name" data-wk="ex-menu">${esc(e.name)}</button>
           <div class="wk-ex-sub">${mu.primary ? `<span class="mchip">${esc(mu.primary)}</span>` : ''}${e.range ? `<span class="mchip ghost">${e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`} ${isCardio(e.name) ? 'min' : 'reps'}</span>` : ''}${e.suggest ? `<span class="mchip up" title="Every set hit the top of the range last time">${icon('up', 12)} try ${fmtKg(e.suggest)} kg</span>` : ''}</div>
@@ -187,6 +193,7 @@ function html(d) {
         <h2>${esc(title)}</h2>
         <p>${isLive ? `<span class="wk-clock">${clock((Date.now() - d.startedAt) / 1000)}</span> · ` : ''}<span class="wk-count">${doneSets} set${doneSets === 1 ? '' : 's'} logged</span></p>
       </div>
+      <button type="button" class="wk-map" data-wk="map" aria-label="Muscles worked so far">${bodyMap(sessionLevels(doneSession(d), muscles).levels, { size: 'xs' })}</button>
       <button type="button" class="btn primary" data-wk="finish">${isLive ? 'Finish' : 'Save'}</button>
     </header>
     <div class="wk-body">
@@ -287,6 +294,9 @@ async function onClick(e) {
     case 'add-ex': return addExercise()
     case 'ex-menu': return exerciseMenu(ex)
     case 'guide': return openGuide(ex.name)
+    case 'map': return openModal(`
+      <header class="modal-head"><div><p class="eyebrow">This workout so far</p><h2>${(n => `${n} set${n === 1 ? '' : 's'} logged`)(shown.exercises.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0))}</h2></div><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+      <div class="modal-body">${muscleBreakdown(doneSession(shown), muscles, '<p class="muted">Tick a set and the muscles it works light up here.</p>')}</div>`, { cls: 'small' })
     case 'add-photo': {
       const d = shown
       const got = await addPhotos(d.id)
