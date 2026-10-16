@@ -1,12 +1,43 @@
-import { esc, icon, openModal, confirmBox, toast } from '../ui.js'
-import { state, sortedSessions, sessionVol, sessionById, isCardio, bestFor, deleteSessions, saveSession } from '../store.js'
-import { today, addMonths, monthStart, monthYear, addDays, dow, longDate, DOW_SHORT } from '../dates.js'
+import { esc, icon, openModal, confirmBox, toast, seg } from '../ui.js'
+import { state, sortedSessions, sessionVol, sessionById, isCardio, bestFor, deleteSessions, saveSession, muscles } from '../store.js'
+import { today, addMonths, monthStart, monthYear, addDays, dow, longDate, shortDate, DOW_SHORT } from '../dates.js'
+import { bodyMap, sessionLevels } from '../bodymap.js'
+import { photoImg, viewPhotos } from '../photos.js'
+import { openGuide } from '../guideview.js'
+import { round1 } from '../model.js'
 import { programColor, fmtVol, fmtSet, exerciseStats } from '../model.js'
 import { sessionRow, pchip } from '../components.js'
 
 export const historyTitle = () => monthYear(state.ui.month || monthStart(today()))
 
 export function renderHistory({ isPhone }) {
+  const tab = state.ui.htab || 'calendar'
+  const tabs = seg('htab', tab, [['calendar', 'Calendar'], ['photos', 'Photos']], 'aria-label="History view"')
+  if (tab === 'photos') return `<div class="hist-wrap">${tabs}${renderPhotos()}</div>`
+  return `<div class="hist-wrap">${tabs}${renderCalendar({ isPhone })}</div>`
+}
+
+// Every workout photo, newest first, grouped by month.
+function renderPhotos() {
+  const withPhotos = sortedSessions().filter(s => s.photos?.length)
+  if (!withPhotos.length) return `<div class="empty"><div class="empty-emoji">📸</div><p>No photos yet — add them during or at the end of a workout.</p></div>`
+  const months = new Map()
+  for (const s of withPhotos) { const k = s.date.slice(0, 7); if (!months.has(k)) months.set(k, []); months.get(k).push(s) }
+  return [...months].map(([k, list]) => `
+    <section class="ph-month">
+      <h3>${esc(monthYear(k + '-01'))}</h3>
+      <div class="ph-grid">
+        ${list.flatMap(s => s.photos.map((p, i) => `<button type="button" class="ph-cell" data-act="photo" data-id="${esc(s.id)}" data-i="${i}" style="--c:${programColor(s.program)}">${photoImg(p.path)}<span>${esc(shortDate(s.date))} · ${esc(s.program)}</span></button>`)).join('')}
+      </div>
+    </section>`).join('')
+}
+
+export function openPhoto(sessionId, i, { onOpenSession }) {
+  const s = sessionById(sessionId)
+  if (s?.photos?.length) viewPhotos(s.photos, i, { date: s.date, onOpenSession })
+}
+
+function renderCalendar({ isPhone }) {
   const ms = state.ui.month || monthStart(today())
   const me = addDays(addMonths(ms, 1), -1)
   const sessions = sortedSessions().filter(s => s.date >= ms && s.date <= me)
@@ -69,13 +100,19 @@ export function openSessionDetail(id, { onEdit, onRepeat, rerender }) {
         <div><b>${sets}</b><span>sets</span></div>
         <div><b>${esc(fmtVol(sessionVol(s)))}</b><span>volume</span></div>
       </div>
+      ${(() => {
+        const { levels, sets: ms } = sessionLevels(s, muscles)
+        const top = Object.entries(ms).sort((a, b) => b[1] - a[1])
+        return top.length ? `<div class="dx-map">${bodyMap(levels)}<div class="dx-mus"><p class="field-label">Muscles worked</p>${top.map(([k, v]) => `<div class="dx-mrow"><span>${esc(k)}</span><i style="--w:${Math.min(100, v / 6 * 100)}%"></i><b>${round1(v)}</b></div>`).join('')}<p class="muted small">Working sets · secondary counts half</p></div></div>` : ''
+      })()}
+      ${s.photos?.length ? `<div class="ph-row">${s.photos.map((p, i) => `<button type="button" class="ph-thumb" data-photo-i="${i}">${photoImg(p.path)}</button>`).join('')}</div>` : ''}
       ${s.exercises.map(e => {
         const cardio = isCardio(e.name)
         const st = exerciseStats(e, cardio)
         const best = cardio ? null : bestFor(e.name)
         const isPr = best && st.maxW > 0 && st.maxW >= best.maxW
         return `<div class="dx">
-          <div class="dx-head"><button type="button" class="link" data-ex-link="${esc(e.name)}">${esc(e.name)}</button>${isPr ? `<span class="pr-badge">${icon('trophy', 12)} Best</span>` : ''}${!cardio && st.vol ? `<span class="muted small">${esc(fmtVol(st.vol))}</span>` : ''}</div>
+          <div class="dx-head"><button type="button" class="link" data-ex-link="${esc(e.name)}">${esc(e.name)}</button><button type="button" class="icon-btn small" data-guide="${esc(e.name)}" aria-label="How to do ${esc(e.name)}" title="How to">${icon('info', 15)}</button>${isPr ? `<span class="pr-badge">${icon('trophy', 12)} Best</span>` : ''}${!cardio && st.vol ? `<span class="muted small">${esc(fmtVol(st.vol))}</span>` : ''}</div>
           <div class="dx-sets">${e.sets.map((x, i) => `<span class="dx-set${x.type === 'warmup' ? ' warm' : ''}"><i>${x.type === 'warmup' ? 'W' : e.sets.slice(0, i + 1).filter(y => y.type !== 'warmup').length}</i>${esc(fmtSet(x, cardio))}</span>`).join('')}</div>
           ${e.note ? `<p class="dx-note">${icon('note', 13)} ${esc(e.note)}</p>` : ''}
         </div>`
@@ -90,6 +127,10 @@ export function openSessionDetail(id, { onEdit, onRepeat, rerender }) {
       </div>
     </footer>`)
   m.el.addEventListener('click', async e => {
+    const g = e.target.closest('[data-guide]')
+    if (g) return openGuide(g.dataset.guide)
+    const ph = e.target.closest('[data-photo-i]')
+    if (ph) return viewPhotos(s.photos, Number(ph.dataset.photoI), { date: s.date })
     const link = e.target.closest('[data-ex-link]')
     if (link) { m.close(true); state.view = 'progress'; state.ui.ptab = 'exercises'; state.ui.exercise = link.dataset.exLink; return rerender() }
     const a = e.target.closest('[data-d]')?.dataset.d

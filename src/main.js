@@ -10,14 +10,14 @@ import { applyTheme } from './theme.js'
 import { initUpdateReload } from './swUpdate.js'
 import { renderAuth, logo } from './views/auth.js'
 import { renderToday } from './views/today.js'
-import { renderHistory, historyTitle, openSessionDetail } from './views/history.js'
+import { renderHistory, historyTitle, openSessionDetail, openPhoto } from './views/history.js'
 import { renderProgress } from './views/progress.js'
 import { renderBody } from './views/body.js'
 import { renderRoutine, editDay, resetRoutine } from './views/routine.js'
 import { renderExercises, editExercise } from './views/exercises.js'
-import { renderSettings, syncLine, PREFS_SQL } from './views/settings.js'
+import { renderSettings, syncLine, PREFS_SQL, PHOTOS_SQL } from './views/settings.js'
 import { initWorkout, startWorkout, resume, newSession, editSession, liveDraft, liveSummary, workoutOpen } from './workout.js'
-import { importHevy, importBackup, exportBackup, exportCsv } from './importer.js'
+import { importHevy, importBackup, exportBackup, exportCsv, exportForHevy } from './importer.js'
 import { sortedDays } from './routine.js'
 import { programColor, fmtKg } from './model.js'
 import { resetCharts } from './charts.js'
@@ -261,6 +261,8 @@ root.addEventListener('click', async e => {
     case 'resume': return resume()
     case 'session': return openSessionDetail(id, { onEdit: editSession, onRepeat: sid => startWorkout({ fromSessionId: sid }), rerender: render })
     case 'log-day': return newSession(date)
+    case 'htab': state.ui.htab = value; return render()
+    case 'photo': return openPhoto(id, Number(el.dataset.i), { onOpenSession: () => openSessionDetail(id, { onEdit: editSession, onRepeat: sid => startWorkout({ fromSessionId: sid }), rerender: render }) })
     case 'month': {
       const cur = state.ui.month || monthStart(today())
       const next = addMonths(cur, Number(el.dataset.v))
@@ -304,11 +306,13 @@ root.addEventListener('click', async e => {
     case 'import-backup': return importBackup(render)
     case 'export-json': return exportBackup()
     case 'export-csv': return exportCsv()
+    case 'export-hevy': return exportForHevy()
     case 'sync': await flush(); return load()
     case 'update': return window.electronAPI?.checkForUpdates()
     case 'signout': await signOut(); return
     case 'copy-sql': navigator.clipboard.writeText(PREFS_SQL).then(() => toast('SQL copied')); return
     case 'reload': return load()
+    case 'copy-photo-sql': navigator.clipboard.writeText(PHOTOS_SQL).then(() => toast('SQL copied')); return
   }
 })
 

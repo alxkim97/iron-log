@@ -14,25 +14,57 @@ export const setRestEndHandler = fn => { onEnd = fn }
 
 // Must be called from a tap (iOS only lets audio start inside a gesture).
 export function unlockAudio() {
-  if (audio || !state.device.sound) return
-  try { audio = new (window.AudioContext || window.webkitAudioContext)() } catch {}
+  if (!state.device.sound) return
+  // 'transient' = a short alert that ducks music instead of stopping it (iOS 17+).
+  try { if (navigator.audioSession) navigator.audioSession.type = 'transient' } catch {}
+  if (audio) { audio.resume?.(); return }
+  try {
+    audio = new (window.AudioContext || window.webkitAudioContext)()
+    const b = audio.createBuffer(1, 1, 22050), src = audio.createBufferSource() // prime the context inside the tap
+    src.buffer = b; src.connect(audio.destination); src.start(0)
+  } catch {}
 }
 
+// Three rising chimes, twice — square + sine layered so it cuts through gym noise.
 function beep() {
   if (!audio || !state.device.sound) return
   try {
     audio.resume?.()
     const t = audio.currentTime
-    for (const [at, f] of [[0, 880], [0.18, 880], [0.36, 1175]]) {
-      const o = audio.createOscillator(), g = audio.createGain()
-      o.frequency.value = f
-      g.gain.setValueAtTime(0.0001, t + at)
-      g.gain.exponentialRampToValueAtTime(0.25, t + at + 0.02)
-      g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.15)
-      o.connect(g).connect(audio.destination)
-      o.start(t + at); o.stop(t + at + 0.16)
+    const comp = audio.createDynamicsCompressor()
+    comp.connect(audio.destination)
+    for (const round of [0, 0.9]) {
+      for (const [at, f] of [[0, 880], [0.22, 1175], [0.44, 1568]]) {
+        for (const [type, vol] of [['square', 0.35], ['sine', 0.9]]) {
+          const o = audio.createOscillator(), g = audio.createGain()
+          o.type = type
+          o.frequency.value = f
+          const s0 = t + round + at
+          g.gain.setValueAtTime(0.0001, s0)
+          g.gain.exponentialRampToValueAtTime(vol, s0 + 0.015)
+          g.gain.exponentialRampToValueAtTime(0.0001, s0 + 0.2)
+          o.connect(g).connect(comp)
+          o.start(s0); o.stop(s0 + 0.22)
+        }
+      }
     }
   } catch {}
+}
+
+// Full-width banner so the end of rest is obvious even at arm's length.
+let bannerTimer
+function restDone() {
+  document.querySelector('.rest-done')?.remove()
+  const el = document.createElement('button')
+  el.type = 'button'
+  el.className = 'rest-done'
+  el.innerHTML = `${icon('zap', 26)}<span><b>Rest over</b><em>Time for your next set</em></span>`
+  document.body.append(el)
+  requestAnimationFrame(() => el.classList.add('show'))
+  const hide = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 300) }
+  el.onclick = hide
+  clearTimeout(bannerTimer)
+  bannerTimer = setTimeout(hide, 10000)
 }
 
 export function startRest(secs) {
@@ -66,7 +98,8 @@ function run() {
       rest = null
       clearInterval(ticker); ticker = null
       beep()
-      navigator.vibrate?.([200, 100, 200])
+      navigator.vibrate?.([400, 150, 400, 150, 600])
+      restDone()
       onEnd(null)
     }
     paint()

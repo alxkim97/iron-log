@@ -7,8 +7,10 @@
 // Only ticked sets are saved.
 import { openModal, confirmBox, toast, esc, icon } from './ui.js'
 import {
-  state, saveSession, deleteSessions, sessionById, lastFor, bestFor, isCardio, muscles, routine, latestBw, blobOp, historyFor,
+  state, saveSession, deleteSessions, sessionById, lastFor, bestFor, isCardio, muscles, routine, latestBw, blobOp, historyFor, queuePhotoDelete,
 } from './store.js'
+import { addPhotos, photoImg } from './photos.js'
+import { openGuide } from './guideview.js'
 import { PROGRAMS, programColor, parseRepRange, suggestNext, fmtKg, fmtSet, exerciseStats, fmtVol } from './model.js'
 import { dayById, dayForDate } from './routine.js'
 import { today, clock, longDate, relDay, shortDate } from './dates.js'
@@ -72,7 +74,7 @@ export function startWorkout({ dayId = null, fromSessionId = null } = {}) {
   live = {
     mode: 'live', id: genId(), date: today(), startedAt: Date.now(),
     program: day?.program || src?.program || 'Other', title: day?.name || '', dayId: day?.id || null,
-    notes: '', exercises, rest: null,
+    notes: '', exercises, rest: null, photos: [],
   }
   persistLive()
   open(live)
@@ -85,7 +87,7 @@ export function resume() { if (live) open(live) }
 export function newSession(date = today()) {
   const day = dayForDate(routine(), date)
   open({
-    mode: 'edit', id: genId(), date, program: day?.program || 'Other', title: '', duration: '', notes: '',
+    mode: 'edit', id: genId(), date, program: day?.program || 'Other', title: '', duration: '', notes: '', photos: [], added: [],
     exercises: day ? day.exercises.map(e => makeExercise(e.name, { entry: e, date })) : [],
   })
 }
@@ -95,7 +97,7 @@ export function editSession(id) {
   if (!s) return
   open({
     mode: 'edit', existing: true, base: s, id: s.id, date: s.date, program: s.program, title: s.title || '',
-    duration: s.duration ? String(s.duration) : '', notes: s.notes || '',
+    duration: s.duration ? String(s.duration) : '', notes: s.notes || '', photos: [...(s.photos || [])], added: [],
     exercises: s.exercises.map(e => {
       const last = lastFor(e.name, s.date, s.id)
       return {
@@ -119,7 +121,11 @@ function open(d) {
       if (!dirty) return true
       return confirmBox('Discard changes to this session?', { ok: 'Discard' })
     },
-    onClose: () => { modal = null; shown = null; keepAwake(false); hooks.rerender() },
+    onClose: () => {
+      // Edit closed without saving: drop photos added in it.
+      if (shown?.mode === 'edit' && !shown.saved && shown.added?.length) queuePhotoDelete(shown.added)
+      modal = null; shown = null; keepAwake(false); hooks.rerender()
+    },
   })
   modal.el.addEventListener('click', onClick)
   modal.el.addEventListener('input', onInput)
@@ -143,6 +149,7 @@ function exerciseCard(e, i, d) {
           <button type="button" class="wk-ex-name" data-wk="ex-menu">${esc(e.name)}</button>
           <div class="wk-ex-sub">${mu.primary ? `<span class="mchip">${esc(mu.primary)}</span>` : ''}${e.range ? `<span class="mchip ghost">${e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`} ${isCardio(e.name) ? 'min' : 'reps'}</span>` : ''}${e.suggest ? `<span class="mchip up" title="Every set hit the top of the range last time">${icon('up', 12)} try ${fmtKg(e.suggest)} kg</span>` : ''}</div>
         </div>
+        <button type="button" class="icon-btn" data-wk="guide" aria-label="How to do ${esc(e.name)}" title="How to">${icon('info')}</button>
         <button type="button" class="icon-btn" data-wk="ex-menu" aria-label="Exercise options">${icon('more')}</button>
       </header>
       <p class="wk-last">${esc(lastLine)}${e.hint ? ` · <em>${esc(e.hint)}</em>` : ''}</p>
@@ -193,6 +200,13 @@ function html(d) {
         </div>`}
       ${d.exercises.map((e, i) => exerciseCard(e, i, d)).join('') || `<div class="empty"><div class="empty-emoji">🏋️</div><p>Add your first exercise.</p></div>`}
       <button type="button" class="btn soft block add-ex" data-wk="add-ex">${icon('plus', 18)} Add exercise</button>
+      <div class="wk-photos">
+        <span class="field-label">Photos</span>
+        <div class="ph-row">
+          ${(d.photos || []).map((p, i) => `<div class="ph-thumb">${photoImg(p.path)}<button type="button" class="ph-del" data-wk="del-photo" data-i="${i}" aria-label="Remove photo">${icon('x', 12)}</button></div>`).join('')}
+          <button type="button" class="ph-add" data-wk="add-photo">${icon('camera', 22)}<span>Add photo</span></button>
+        </div>
+      </div>
       <label class="field">Session notes<textarea data-f="notes" rows="2" placeholder="How did it go?">${esc(d.notes)}</textarea></label>
       <div class="wk-danger">
         ${isLive ? `<button type="button" class="btn ghost danger-text" data-wk="discard">${icon('trash', 16)} Discard workout</button>`
@@ -272,9 +286,25 @@ async function onClick(e) {
     case 'del-set': ex.sets.pop(); save(); return render()
     case 'add-ex': return addExercise()
     case 'ex-menu': return exerciseMenu(ex)
+    case 'guide': return openGuide(ex.name)
+    case 'add-photo': {
+      const d = shown
+      const got = await addPhotos(d.id)
+      if (!got.length || shown !== d) return
+      d.photos = [...(d.photos || []), ...got]
+      if (d.mode === 'edit') d.added.push(...got.map(p => p.path))
+      save(); return render()
+    }
+    case 'del-photo': {
+      const [p] = shown.photos.splice(Number(b.dataset.i), 1)
+      // Live / newly added: delete now. Existing in an edit: on save.
+      if (shown.mode === 'live' || shown.added?.includes(p.path)) queuePhotoDelete([p.path])
+      save(); return render()
+    }
     case 'finish': return finish()
     case 'discard':
       if (!(await confirmBox('Discard this workout? Nothing from it will be saved.', { ok: 'Discard' }))) return
+      queuePhotoDelete((live.photos || []).map(p => p.path))
       live = null; persistLive(); stopRest(); modal.close(true); return
     case 'delete': {
       if (!(await confirmBox('Delete this session?'))) return
@@ -330,6 +360,7 @@ function exerciseMenu(ex) {
         ${recent.length ? `<div class="mini-hist">${recent.map(r => `<div><b>${esc(shortDate(r.date))}</b><span>${esc(r.ex.sets.filter(s => s.type !== 'warmup').map(s => fmtSet(s, isCardio(ex.name))).join(' · '))}</span></div>`).join('')}</div>` : ''}
         <div class="menu-list">
           <button type="button" data-m="note">${icon('note', 18)} ${ex.note || ex.showNote ? 'Edit note' : 'Add note'}</button>
+          <button type="button" data-m="guide">${icon('info', 18)} How to do it</button>
           <button type="button" data-m="swap">${icon('swap', 18)} Replace exercise</button>
           ${i > 0 ? `<button type="button" data-m="up">${icon('up', 18)} Move up</button>` : ''}
           ${i < shown.exercises.length - 1 ? `<button type="button" data-m="down">${icon('down', 18)} Move down</button>` : ''}
@@ -341,6 +372,7 @@ function exerciseMenu(ex) {
     const a = e.target.closest('[data-m]')?.dataset.m
     if (!a) return
     m.close(true)
+    if (a === 'guide') return openGuide(ex.name)
     if (a === 'note') { ex.showNote = true; render(); modal.el.querySelector(`[data-ex="${ex.uid}"] .wk-note`)?.focus(); return }
     if (a === 'up' || a === 'down') { const j = a === 'up' ? i - 1 : i + 1; [shown.exercises[i], shown.exercises[j]] = [shown.exercises[j], shown.exercises[i]] }
     if (a === 'remove') {
@@ -348,7 +380,7 @@ function exerciseMenu(ex) {
       shown.exercises.splice(shown.exercises.indexOf(ex), 1)
     }
     if (a === 'swap') {
-      const name = await pickExercise({ title: 'Replace with', exclude: shown.exercises.map(x => x.name) })
+      const name = await pickExercise({ title: `Replace ${ex.name}`, exclude: shown.exercises.map(x => x.name), similarTo: ex.name })
       if (!name) return
       const fresh = makeExercise(name, { date: shown.date, exceptId: shown.id, count: ex.sets.length })
       shown.exercises[shown.exercises.indexOf(ex)] = fresh
@@ -384,6 +416,7 @@ async function finish() {
     duration: d.mode === 'live' ? Math.min(300, Math.max(1, Math.round((Date.now() - d.startedAt) / 60000))) : num(d.duration),
     notes: d.notes.trim(),
     exercises,
+    photos: d.photos || [],
     createdAt: base.createdAt || d.startedAt || Date.now(),
     ...(d.mode === 'live' ? { startedAt: d.startedAt, source: 'live' } : {}),
     updatedAt: Date.now(),
@@ -396,6 +429,8 @@ async function finish() {
     if (best.maxW > 0 && st.maxW > best.maxW) prs.push({ name: e.name, what: `${fmtKg(st.maxW)} kg — heaviest yet (was ${fmtKg(best.maxW)})` })
     else if (best.e1rm > 0 && st.e1rm > best.e1rm + 0.05) prs.push({ name: e.name, what: `est. 1RM ${fmtKg(Math.round(st.e1rm * 10) / 10)} kg (was ${fmtKg(Math.round(best.e1rm * 10) / 10)})` })
   }
+  if (d.base?.photos?.length) queuePhotoDelete(d.base.photos.map(p => p.path).filter(p => !session.photos.some(x => x.path === p)))
+  d.saved = true
   const saved = saveSession(session)
   if (d.mode === 'live') { live = null; persistLive(); stopRest() }
   modal.close(true)
@@ -424,8 +459,20 @@ function summary(s, prs) {
         <label>Body weight<input name="w" inputmode="decimal" placeholder="${bw ? esc(fmtKg(bw.weight)) : 'kg'}" autocomplete="off"></label>
         <button class="btn soft" type="submit">Log</button>
       </form>
-      <button type="button" class="btn primary block" data-close>Done</button>
+      <div class="ph-row sum-photos"></div>
+      <div class="row-gap sum-btns">
+        <button type="button" class="btn soft" data-sum="photo">${icon('camera', 16)} Add photo</button>
+        <button type="button" class="btn primary" data-close>Done</button>
+      </div>
     </div>`, { cls: 'small' + (prs.length ? ' celebrate' : '') })
+  let cur = s
+  m.el.querySelector('[data-sum="photo"]').onclick = async () => {
+    const got = await addPhotos(s.id)
+    if (!got.length) return
+    cur = saveSession({ ...cur, photos: [...(cur.photos || []), ...got] })
+    m.el.querySelector('.sum-photos').innerHTML = cur.photos.map(p => `<div class="ph-thumb">${photoImg(p.path)}</div>`).join('')
+    hooks.rerender()
+  }
   m.el.querySelector('form').onsubmit = e => {
     e.preventDefault()
     const w = num(e.target.elements.w.value)

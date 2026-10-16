@@ -3,6 +3,7 @@ import { state, exerciseIndex, historyFor, muscles, isCardio, sortedSessions, se
 import { today, addDays, weekStart, shortDate, fullDate, agoDays, DOW_SHORT, monthShort } from '../dates.js'
 import { fmtKg, fmtVol, fmtSet, round1, programColor, PROGRAMS } from '../model.js'
 import { lineChart, columns } from '../charts.js'
+import { guideBlock } from '../guideview.js'
 
 const TABS = [['exercises', 'Exercises'], ['stats', 'Stats'], ['awards', 'Awards']]
 
@@ -71,6 +72,10 @@ function exerciseDetail(name, isPhone) {
       <section class="card">
         <header class="card-head"><h2>${cardio ? 'Minutes per session' : 'Strength over time'}</h2>${seg('ex-range', range, RANGES)}</header>
         ${lineChart(series, { height: 220, unit: cardio ? ' min' : ' kg' })}
+      </section>
+      <section class="card">
+        <header class="card-head"><h2>${icon('info', 18)} How to</h2></header>
+        ${guideBlock(h.name)}
       </section>
       <section class="card">
         <header class="card-head"><h2>History</h2></header>

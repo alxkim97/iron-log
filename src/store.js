@@ -26,7 +26,7 @@ export const state = {
   userLib: [],
   prefs: { ...DEFAULT_PREFS },
   prefsCloud: true,          // false until iron_prefs exists (SQL not run yet)
-  sync: { pending: 0, syncing: false, error: null, at: null },
+  sync: { pending: 0, syncing: false, error: null, at: null, photoError: null },
   device: { ...defaultDevice, ...loadJson(DEVICE_KEY, {}) },
   ui: {},                    // per-view scratch: selected exercise, month, tabs…
   rev: 0,                    // bumps whenever data changes; derived caches key on it
@@ -90,6 +90,19 @@ function touch(persist = true) {
   if (persist) cacheData()
 }
 
+const isPhotoOp = o => o.kind === 'photo' || o.kind === 'photo-del'
+export const pendingPhoto = path => outbox.find(o => o.kind === 'photo' && o.path === path)?.dataUrl || null
+export const queuePhoto = (path, dataUrl) => queue({ kind: 'photo', path, dataUrl })
+export function queuePhotoDelete(paths) {
+  if (!paths.length) return
+  // Not uploaded yet → just drop it from the queue.
+  const pending = new Set(outbox.filter(o => o.kind === 'photo' && paths.includes(o.path)).map(o => o.path))
+  outbox = outbox.filter(o => !(o.kind === 'photo' && pending.has(o.path)))
+  const rest = paths.filter(p => !pending.has(p))
+  if (rest.length) queue({ kind: 'photo-del', paths: rest })
+  else saveOutbox()
+}
+
 function queue(...ops) {
   for (const op of ops) applyLocal(op)
   outbox.push(...ops)
@@ -107,12 +120,27 @@ export function flush() {
     state.sync.syncing = true
     onChange()
     try {
-      while (outbox.length) {
-        const head = outbox[0]
+      let i = 0
+      while (i < outbox.length) {
+        const head = outbox[i]
+        // Photos never block sessions: a failed upload waits for the next flush.
+        if (isPhotoOp(head)) {
+          try {
+            if (head.kind === 'photo') await db.uploadPhoto(head.path, await (await fetch(head.dataUrl)).blob())
+            else await db.deletePhotos(head.paths)
+            outbox.splice(i, 1)
+            saveOutbox()
+            state.sync.photoError = null
+          } catch (e) {
+            state.sync.photoError = db.isMissingBucket(e) ? 'setup' : (e?.message || String(e))
+            i++
+          }
+          continue
+        }
         let n = 1
         if (head.kind === 'put' || head.kind === 'del') {
-          while (n < outbox.length && outbox[n].kind === head.kind) n++
-          const batch = outbox.slice(0, n)
+          while (i + n < outbox.length && outbox[i + n].kind === head.kind) n++
+          const batch = outbox.slice(i, i + n)
           if (head.kind === 'put') {
             const latest = new Map(batch.map(o => [o.session.id, o.session]))
             await db.putSessions([...latest.values()])
@@ -120,8 +148,8 @@ export function flush() {
             await db.deleteSessions([...new Set(batch.flatMap(o => o.ids))])
           }
         } else {
-          while (n < outbox.length && outbox[n].kind === 'blob' && outbox[n].table === head.table) n++
-          const ops = outbox.slice(0, n)
+          while (i + n < outbox.length && outbox[i + n].kind === 'blob' && outbox[i + n].table === head.table) n++
+          const ops = outbox.slice(i, i + n)
           try {
             let cur = await db.readBlob(head.table)
             for (const o of ops) cur = applyBlobOp(head.table, cur, o.op)
@@ -131,7 +159,7 @@ export function flush() {
             state.prefsCloud = false // kept on this device until the table exists
           }
         }
-        outbox.splice(0, n)
+        outbox.splice(i, n)
         saveOutbox()
       }
       state.sync.error = null
@@ -151,7 +179,7 @@ export function flush() {
 // ── Load ──
 export async function loadAll() {
   await flush()
-  if (outbox.length) throw new Error(state.sync.error || 'Offline')
+  if (outbox.some(o => !isPhotoOp(o))) throw new Error(state.sync.error || 'Offline')
   const missing = Symbol('missing')
   const blob = t => db.readBlob(t).catch(e => { if (t === 'iron_prefs' && db.isMissingTable(e)) return missing; throw e })
   const [sessions, bw, ci, lib, prefs] = await Promise.all([

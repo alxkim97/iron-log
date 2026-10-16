@@ -191,3 +191,37 @@ export function planImport(parsed, sessions, bwLog = []) {
   const weights = parsed.weights.filter(b => !haveBw.has(b.date))
   return { add, fixDates, same, dupes, weights }
 }
+
+// ── Iron Log → HEVY ──
+// HEVY imports Strong-format CSVs, so sessions go out in that layout with
+// HEVY's exercise titles (first HEVY title wins where several map to one).
+export const TO_HEVY = {}
+for (const [hevy, iron] of Object.entries(HEVY_NAMES)) if (!(iron in TO_HEVY)) TO_HEVY[iron] = hevy
+export const toHevyName = n => TO_HEVY[n] || n
+
+const pad2 = x => String(x).padStart(2, '0')
+const stamp = (date, ms) => {
+  const d = ms ? new Date(ms) : null
+  const t = d && toStr(d) === date ? `${pad2(d.getHours())}:${pad2(d.getMinutes())}:00` : '06:00:00'
+  return `${date} ${t}`
+}
+const dur = m => !m ? '0m' : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`
+const csvCell = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v)
+
+export function toStrongCsv(sessions, isCardio = () => false) {
+  const rows = [['Date', 'Workout Name', 'Duration', 'Exercise Name', 'Set Order', 'Weight', 'Reps', 'Distance', 'Seconds', 'Notes', 'Workout Notes', 'RPE']]
+  for (const s of [...sessions].sort((a, b) => a.date.localeCompare(b.date))) {
+    const when = stamp(s.date, s.startedAt || s.hevyStart || s.createdAt)
+    const title = s.title || s.program
+    for (const e of s.exercises) {
+      const cardio = isCardio(e.name)
+      e.sets.forEach((x, i) => {
+        const [w, r, dist, secs] = cardio ? ['', '', x.weight || '', x.reps ? Math.round(x.reps * 60) : '']
+          : x.timed ? [x.weight || '', '', '', x.reps]
+          : [x.weight, x.reps, '', '']
+        rows.push([when, title, dur(s.duration), toHevyName(e.name), i + 1, w, r, dist, secs, i === 0 ? e.note || '' : '', s.notes || '', ''])
+      })
+    }
+  }
+  return rows.map(r => r.map(csvCell).join(',')).join('\n')
+}

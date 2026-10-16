@@ -74,3 +74,20 @@ export async function writeBlob(table, value) {
   const { error } = await supa.from(table).upsert({ user_id: user, data: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   if (error) throw error
 }
+
+// ── Photos (Storage bucket iron-photos, files under <user id>/<session id>/) ──
+const BUCKET = 'iron-photos'
+export const isMissingBucket = e => /bucket not found/i.test(e?.message || '')
+export async function uploadPhoto(path, blob) {
+  const { error } = await supa.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+  if (error) throw error
+}
+export async function photoUrls(paths) {
+  const { data, error } = await supa.storage.from(BUCKET).createSignedUrls(paths, 3600)
+  if (error) throw error
+  return Object.fromEntries(data.filter(d => d.signedUrl).map(d => [d.path, d.signedUrl]))
+}
+export async function deletePhotos(paths) {
+  const { error } = await supa.storage.from(BUCKET).remove(paths)
+  if (error) throw error
+}

@@ -75,3 +75,8 @@ export async function putSessions(list) {
 export async function deleteSessions(ids) { await wait(); db.sessions = db.sessions.filter(s => !ids.includes(s.id)) }
 export const readBlob = async table => { await wait(40); return copy(db.blobs[table] ?? null) }
 export async function writeBlob(table, value) { await wait(40); db.blobs[table] = copy(value) }
+const photoStore = new Map()
+export const isMissingBucket = () => false
+export async function uploadPhoto(path, blob) { await wait(200); photoStore.set(path, URL.createObjectURL(blob)) }
+export const photoUrls = async paths => Object.fromEntries(paths.filter(p => photoStore.has(p)).map(p => [p, photoStore.get(p)]))
+export async function deletePhotos(paths) { for (const p of paths) photoStore.delete(p) }

@@ -1,8 +1,8 @@
 // Imports (HEVY CSV, Iron Log backup JSON) and exports (JSON backup, CSV).
 import { openModal, esc, icon, toast, pickFile, download } from './ui.js'
-import { state, saveSessions, blobOp, sessionById } from './store.js'
-import { parseHevy, planImport } from './hevy.js'
-import { fullDate, today } from './dates.js'
+import { state, saveSessions, blobOp, sessionById, isCardio } from './store.js'
+import { parseHevy, planImport, toStrongCsv } from './hevy.js'
+import { fullDate, today, addDays } from './dates.js'
 import { normalizeSession } from './model.js'
 
 const readText = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsText(f) })
@@ -86,4 +86,36 @@ export function exportCsv() {
     for (const e of s.exercises) e.sets.forEach((x, i) => rows.push([s.date, s.program, s.duration || '', e.name, i + 1, x.type, x.weight, x.reps, i === 0 ? e.note || '' : '']))
   }
   download(`Iron Log sets ${today()}.csv`, rows.map(r => r.map(q).join(',')).join('\n'), 'text/csv')
+}
+
+// Back to HEVY: workouts in a date range as a Strong-format CSV. Defaults to
+// everything after the last workout that came from HEVY, so nothing goes
+// back that HEVY already has.
+export function exportForHevy() {
+  const fromHevy = state.sessions.filter(s => s.source === 'hevy' || s.hevyStart).map(s => s.date).sort()
+  const from0 = fromHevy.length ? addDays(fromHevy.at(-1), 1) : addDays(today(), -30)
+  const m = openModal(`
+    <header class="modal-head"><h2>Export for HEVY</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+    <div class="modal-body">
+      <p class="muted small">Makes a Strong-format CSV with HEVY's exercise names. In HEVY: Profile → Settings → Export &amp; Import → Import data, then pick this file.</p>
+      <div class="field-row">
+        <label class="field">From<input type="date" name="from" value="${from0}" max="${today()}"></label>
+        <label class="field">To<input type="date" name="to" value="${today()}" max="${today()}"></label>
+      </div>
+      <p class="hx-count muted"></p>
+    </div>
+    <footer class="modal-foot"><span></span><div class="row-gap"><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-ok>${icon('download', 16)} Download</button></div></footer>`)
+  const pick = () => {
+    const from = m.el.querySelector('[name=from]').value, to = m.el.querySelector('[name=to]').value
+    return state.sessions.filter(s => s.date >= from && s.date <= to)
+  }
+  const count = () => { const n = pick().length; m.el.querySelector('.hx-count').textContent = `${n} workout${n === 1 ? '' : 's'} in this range${fromHevy.length ? ` · HEVY already has everything up to ${fullDate(fromHevy.at(-1))}` : ''}` }
+  m.el.addEventListener('input', count)
+  count()
+  m.el.querySelector('[data-ok]').onclick = () => {
+    const list = pick()
+    if (!list.length) return toast('No workouts in that range')
+    download(`Iron Log for HEVY ${today()}.csv`, toStrongCsv(list, isCardio), 'text/csv')
+    m.close(true)
+  }
 }

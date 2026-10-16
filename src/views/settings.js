@@ -12,6 +12,13 @@ drop policy if exists "own row" on iron_prefs;
 create policy "own row" on iron_prefs for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());`
 
+export const PHOTOS_SQL = `insert into storage.buckets (id, name, public) values ('iron-photos', 'iron-photos', false)
+on conflict (id) do nothing;
+drop policy if exists "iron photos own" on storage.objects;
+create policy "iron photos own" on storage.objects for all to authenticated
+  using (bucket_id = 'iron-photos' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'iron-photos' and (storage.foldername(name))[1] = auth.uid()::text);`
+
 export function syncLine() {
   const s = state.sync
   if (s.syncing) return 'Syncing…'
@@ -38,6 +45,14 @@ export function renderSettings({ isPhone }) {
           <pre class="sql">${esc(PREFS_SQL)}</pre>
           <div class="row-gap"><button class="btn soft" data-act="copy-sql">Copy SQL</button><button class="btn primary" data-act="reload">I ran it</button></div>
         </section>`}
+
+      ${state.sync.photoError === 'setup' ? `
+        <section class="card tone-warn">
+          <header class="card-head"><h2>${icon('camera', 18)} Photo storage setup</h2></header>
+          <p>Your photos are saved on this device and waiting to upload. Run this once in the Supabase SQL editor (lifelog project):</p>
+          <pre class="sql">${esc(PHOTOS_SQL)}</pre>
+          <div class="row-gap"><button class="btn soft" data-act="copy-photo-sql">Copy SQL</button><button class="btn primary" data-act="sync">I ran it</button></div>
+        </section>` : ''}
 
       <section class="card">
         <header class="card-head"><h2>${icon('timer', 18)} Workout</h2></header>
@@ -66,6 +81,7 @@ export function renderSettings({ isPhone }) {
         <div class="row-gap">
           <button class="btn soft" data-act="export-json">${icon('download', 16)} Backup (.json)</button>
           <button class="btn soft" data-act="export-csv">${icon('download', 16)} Every set (.csv)</button>
+          <button class="btn soft" data-act="export-hevy">${icon('download', 16)} For HEVY (.csv)</button>
         </div>
       </section>
 

@@ -80,3 +80,20 @@ test('real export parses (359 workouts)', { skip: !existsSync(real) }, () => {
   assert.ok(workouts.every(w => /^\d{4}-\d\d-\d\d$/.test(w.date) && w.exercises.length))
   assert.equal(workouts.at(-1).date, '2026-09-08')
 })
+
+import { toStrongCsv } from '../src/hevy.js'
+test('export for HEVY: Strong layout, HEVY names, cardio and timed sets', () => {
+  const csv = toStrongCsv([
+    { date: '2026-10-16', program: 'Pull', title: 'Pull', duration: 65, notes: 'good, solid', startedAt: new Date(2026, 9, 16, 6, 30).getTime(),
+      exercises: [
+        { name: 'Lat Pulldown', note: 'wide', sets: [{ type: 'working', weight: 50, reps: 8 }, { type: 'working', weight: 50, reps: 10 }] },
+        { name: 'Treadmill', sets: [{ type: 'working', weight: 3, reps: 35 }] },
+        { name: 'Plank', sets: [{ type: 'working', weight: 0, reps: 75, timed: true }] },
+      ] },
+  ], n => n === 'Treadmill').split('\n')
+  assert.equal(csv[0], 'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE')
+  assert.equal(csv[1], '2026-10-16 06:30:00,Pull,1h 5m,Lat Pulldown (Machine),1,50,8,,,wide,"good, solid",')
+  assert.equal(csv[2], '2026-10-16 06:30:00,Pull,1h 5m,Lat Pulldown (Machine),2,50,10,,,,"good, solid",')
+  assert.equal(csv[3], '2026-10-16 06:30:00,Pull,1h 5m,Treadmill,1,,,3,2100,,"good, solid",')
+  assert.equal(csv[4], '2026-10-16 06:30:00,Pull,1h 5m,Plank,1,,,,75,,"good, solid",')
+})
