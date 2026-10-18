@@ -36,7 +36,7 @@ export const DEFAULT_LIBRARY = [
   L('Close-Grip Bench Press', 'Triceps', ['Chest', 'Shoulders'], 'Barbell'),
   L('Tricep Pushdown', 'Triceps', [], 'Cable'),
   L('Triceps Rope Pushdown', 'Triceps', [], 'Cable'),
-  L('Overhead Tricep Ext.', 'Triceps', [], 'Cable', 'Long head'),
+  L('Tricep Extension Cable', 'Triceps', [], 'Cable', 'Long head'),
   L('Skullcrusher (Dumbbell)', 'Triceps', [], 'Dumbbells'),
   L('Lateral Raise', 'Shoulders', [], 'Dumbbells', 'Side delt'),
   L('Smith Overhead Press', 'Shoulders', ['Triceps'], 'Smith Machine'),

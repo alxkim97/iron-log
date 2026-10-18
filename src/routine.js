@@ -2,6 +2,12 @@
 // actually logged in HEVY Jul–Sep 2026 (most frequent exercises per day),
 // with v1's protocol rep ranges. Editable on the Routine page; synced in
 // iron_prefs.
+//
+// Mon and Sat are both rest days (confirmed 2026-10-18) — Mon was
+// previously seeded as a "Cardio" day from old HEVY data, but that was
+// never actually the plan, which is why it never got logged (0/14 weeks).
+// Treadmill walks are tracked separately in WalkLog, not as an Iron Log
+// training day.
 import { dow } from './dates.js'
 
 const E = (name, sets, reps, notes = '') => ({ name, sets, reps, notes })
@@ -14,9 +20,6 @@ export const DEFAULT_ROUTINE = {
       E('Tricep Pushdown', 3, '8–12'),
       E('Smith Overhead Press', 3, '8–12'),
       E('Seated Cable Row', 3, '8–12'),
-    ] },
-    { id: 'cardio', name: 'Cardio', program: 'Cardio', dow: 1, exercises: [
-      E('Treadmill', 1, '20–40', 'Speed + incline as you like'),
     ] },
     { id: 'pull', name: 'Pull', program: 'Pull', dow: 2, exercises: [
       E('Seated Cable Row', 3, '6–12', 'Compound anchor'),
@@ -41,7 +44,7 @@ export const DEFAULT_ROUTINE = {
     { id: 'arms', name: 'Arms', program: 'Arms', dow: 5, exercises: [
       E('Incline DB Curl', 3, '8–12'),
       E('Wrist Curl', 3, '15–20'),
-      E('Overhead Tricep Ext.', 3, '10–15'),
+      E('Tricep Extension Cable', 3, '10–15'),
       E('Lateral Raise', 3, '15–20'),
       E('Reverse Curl EZ Bar', 3, '8–12'),
     ] },

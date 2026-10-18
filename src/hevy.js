@@ -21,7 +21,7 @@ export const HEVY_NAMES = {
   'Triceps Pushdown': 'Tricep Pushdown',
   'Overhead Press (Smith Machine)': 'Smith Overhead Press',
   'Seated Incline Curl (Dumbbell)': 'Incline DB Curl',
-  'Overhead Triceps Extension (Cable)': 'Overhead Tricep Ext.',
+  'Overhead Triceps Extension (Cable)': 'Tricep Extension Cable',
   'Bench Press (Smith Machine)': 'Smith Bench Press',
   'Bench Press - Close Grip (Barbell)': 'Close-Grip Bench Press',
   'Hammer Curl (Cable)': 'Cross Body Hammer Curl',

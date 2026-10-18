@@ -1,6 +1,7 @@
 import { esc, icon, seg } from '../ui.js'
 import { state } from '../store.js'
 import { timeAgo } from '../dates.js'
+import { MUSCLES } from '../model.js'
 
 export const PREFS_SQL = `create table if not exists iron_prefs (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -65,6 +66,14 @@ export function renderSettings({ isPhone }) {
       <section class="card">
         <header class="card-head"><h2>${icon('moon', 18)} Appearance</h2></header>
         ${seg('theme', d.theme, [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}
+      </section>
+
+      <section class="card">
+        <header class="card-head"><h2>${icon('repeat', 18)} Catch-up priority</h2></header>
+        <p class="muted small">When Mon or Sat suggests exercises for what you missed that week, these muscles get bumped up the list even if they're not technically behind on volume.</p>
+        <div class="chip-row wrap">
+          ${MUSCLES.map(m => `<button type="button" class="fchip${state.prefs.priorityMuscles?.includes(m.key) ? ' on' : ''}" data-act="priority-muscle" data-value="${esc(m.key)}">${esc(m.key)}</button>`).join('')}
+        </div>
       </section>
 
       <section class="card">

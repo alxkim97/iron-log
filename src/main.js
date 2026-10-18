@@ -22,6 +22,9 @@ import { importHevy, importBackup, exportBackup, exportCsv, exportForHevy } from
 import { sortedDays } from './routine.js'
 import { programColor, fmtKg } from './model.js'
 import { resetCharts } from './charts.js'
+import { catchupSuggestions } from './catchup.js'
+
+const STATUS_LABEL = { none: 'Not trained', low: 'Under target', good: 'On target', over: 'Above target' }
 
 const root = document.getElementById('app')
 const PHONE = window.matchMedia('(max-width: 859px)')
@@ -252,6 +255,51 @@ function startSheet() {
   })
 }
 
+// ── Catch-up sheet (rest-day suggestions) ──
+function catchupSheet() {
+  const { items } = catchupSuggestions(today(), state.prefs.priorityMuscles || [])
+  if (!items.length) {
+    const m = openModal(`
+      <header class="modal-head"><h2>Catch-up</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+      <div class="modal-body">
+        <p class="muted">Nothing missed this week — nice.</p>
+        <div class="row-gap"><button type="button" class="btn soft" data-s="plain">${icon('play', 16)} Train anyway</button></div>
+      </div>`)
+    m.el.addEventListener('click', e => { if (e.target.closest('[data-s="plain"]')) { m.close(true); startSheet() } })
+    return
+  }
+  const preCount = Math.min(5, items.length)
+  const rows = items.map((it, i) => `
+    <label class="catchup-row">
+      <input type="checkbox" value="${i}" ${i < preCount ? 'checked' : ''}>
+      <span class="catchup-main">
+        <b>${esc(it.name)}</b>
+        <span class="catchup-meta">${esc(it.dayName)} · <span class="mstat s-${it.status}">${STATUS_LABEL[it.status]}</span>${it.isPriority ? ` · ${icon('heart', 12)} priority` : ''}${!it.wholeDayMissed ? ' · partial day' : ''}</span>
+      </span>
+    </label>`).join('')
+  const m = openModal(`
+    <header class="modal-head"><h2>${icon('repeat', 18)} Catch-up</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+    <div class="modal-body">
+      <p class="muted small">Ranked by what you missed this week and which muscles are furthest behind target. Check what you want, uncheck the rest.</p>
+      <div class="list catchup-list">${rows}</div>
+      <div class="row-gap">
+        <button type="button" class="btn primary" data-s="go">${icon('play', 16)} Start catch-up workout</button>
+        <button type="button" class="btn ghost" data-s="plain">Something else</button>
+      </div>
+    </div>`, { wide: true })
+  m.el.addEventListener('click', e => {
+    const b = e.target.closest('[data-s]')
+    if (!b) return
+    if (b.dataset.s === 'plain') { m.close(true); return startSheet() }
+    if (b.dataset.s === 'go') {
+      const checked = [...m.el.querySelectorAll('.catchup-row input:checked')].map(c => items[Number(c.value)])
+      if (!checked.length) return toast('Pick at least one exercise')
+      m.close(true)
+      startWorkout({ custom: checked.map(c => ({ name: c.name, entry: c.entry })) })
+    }
+  })
+}
+
 // ── Interaction (one delegated handler) ──
 root.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]')
@@ -261,6 +309,7 @@ root.addEventListener('click', async e => {
     case 'nav': return setView(view)
     case 'start': return startWorkout({ dayId: el.dataset.day })
     case 'start-sheet': return startSheet()
+    case 'catchup-sheet': return catchupSheet()
     case 'resume': return resume()
     case 'session': return openSessionDetail(id, { onEdit: editSession, onRepeat: sid => startWorkout({ fromSessionId: sid }), rerender: render })
     case 'log-day': return newSession(date)
@@ -304,6 +353,11 @@ root.addEventListener('click', async e => {
     case 'lib-edit': return editExercise(name, render)
     case 'lib-m': state.ui.libm = value; return render()
     case 'rest': setPrefs({ restSecs: Number(value) }); return render()
+    case 'priority-muscle': {
+      const cur = state.prefs.priorityMuscles || []
+      setPrefs({ priorityMuscles: cur.includes(value) ? cur.filter(m => m !== value) : [...cur, value] })
+      return render()
+    }
     case 'theme': saveDevice({ theme: value }); applyTheme(value); return render()
     case 'import-hevy': return importHevy(render)
     case 'import-backup': return importBackup(render)

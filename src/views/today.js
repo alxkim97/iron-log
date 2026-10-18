@@ -2,6 +2,7 @@ import { esc, icon } from '../ui.js'
 import { state, routine, sortedSessions, sessionVol, weekStreak, latestBw, sessionsBetween } from '../store.js'
 import { dayForDate, sortedDays } from '../routine.js'
 import { today, weekStart, addDays, longDate, DOW_LONG, dow, clock } from '../dates.js'
+import { catchupSuggestions } from '../catchup.js'
 import { fmtVol, fmtKg, programColor } from '../model.js'
 import { liveSummary } from '../workout.js'
 import { sessionRow, weekStrip, muscleBars, recoveryGrid } from '../components.js'
@@ -32,8 +33,13 @@ function hero() {
   } else {
     h = 'Rest day'
     const next = sortedDays(routine()).find(d => d.dow != null && d.dow > dow(t)) || sortedDays(routine())[0]
-    sub = `Recover well.${next ? ` Next up: ${esc(next.name)} on ${DOW_LONG[next.dow] || 'any day'}.` : ''}`
-    actions = `<button class="btn hero-btn" data-act="start-sheet">${icon('play', 18)} Train anyway</button>`
+    const missed = catchupSuggestions(t, state.prefs.priorityMuscles || []).items.length
+    sub = missed
+      ? `${missed} exercise${missed === 1 ? '' : 's'} from this week could use a catch-up.`
+      : `Recover well.${next ? ` Next up: ${esc(next.name)} on ${DOW_LONG[next.dow] || 'any day'}.` : ''}`
+    actions = missed
+      ? `<button class="btn hero-btn" data-act="catchup-sheet">${icon('repeat', 18)} Catch-up</button><button class="btn hero-ghost" data-act="start-sheet">Something else</button>`
+      : `<button class="btn hero-btn" data-act="start-sheet">${icon('play', 18)} Train anyway</button>`
   }
   const ws = weekStart(t)
   const week = sessionsBetween(ws, addDays(ws, 6))

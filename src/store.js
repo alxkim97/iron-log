@@ -14,7 +14,7 @@ const defaultDevice = { theme: 'system', sound: true, wake: true }
 const loadJson = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d } catch { return d } }
 const saveJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} }
 
-export const DEFAULT_PREFS = { restSecs: 90 }
+export const DEFAULT_PREFS = { restSecs: 90, priorityMuscles: [] }
 
 export const state = {
   session: null,
