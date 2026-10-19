@@ -90,7 +90,7 @@ const GUESS = [
   [/pushdown|tricep|skull|close.?grip|\bdip|overhead ext|kickback/i, 'Triceps'],
   [/crunch|plank|pallof|\bab\b|abs|core|twist|sit.?up|leg raise/i, 'Core'],
   [/lateral|face pull|shoulder|overhead press|ohp|delt|military|arnold/i, 'Shoulders'],
-  [/row|pulldown|pull.?up|chin|\blat\b|shrug|back ext|pullover/i, 'Back'],
+  [/row|pulldown|pull.?up|chin.?up|\blat\b|shrug|back ext|pullover/i, 'Back'],
   [/bench|fly|chest|pec|push.?up|press/i, 'Chest'],
 ]
 export function guessMuscle(name) {
