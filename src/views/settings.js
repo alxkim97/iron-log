@@ -1,7 +1,8 @@
 import { esc, icon, seg } from '../ui.js'
-import { state } from '../store.js'
+import { state, holiday } from '../store.js'
 import { timeAgo } from '../dates.js'
 import { MUSCLES } from '../model.js'
+import { EQUIPMENT } from '../planner.js'
 
 export const PREFS_SQL = `create table if not exists iron_prefs (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -26,6 +27,22 @@ export function syncLine() {
   if (s.pending) return `${s.pending} change${s.pending === 1 ? '' : 's'} waiting to sync${s.error ? ` — ${s.error}` : ''}`
   if (s.error) return `Sync problem: ${s.error}`
   return s.at ? `Synced ${timeAgo(s.at)}` : 'Not synced yet'
+}
+
+function holidayCard() {
+  const h = holiday()
+  return `
+      <section class="card${h.on ? ' tone-holiday' : ''}">
+        <header class="card-head"><h2>${icon('sun', 18)} Holiday mode</h2></header>
+        <p class="muted small">Short full-body sessions to hold on to muscle while you're away: 2 easier sets per exercise, built from whatever you'll have. Your routine stays as it is, and Today switches back when you turn this off.</p>
+        <label class="toggle"><input type="checkbox" data-act="holiday" ${h.on ? 'checked' : ''}><span>Holiday mode is ${h.on ? 'on' : 'off'}</span></label>
+        <label class="setting-label">What you'll have <span class="muted small">(bodyweight always counts)</span></label>
+        <div class="chip-row wrap">
+          ${EQUIPMENT.map(([k, label]) => `<button type="button" class="fchip${h.equipment.includes(k) ? ' on' : ''}" data-act="holiday-eq" data-value="${esc(k)}">${esc(label)}</button>`).join('')}
+        </div>
+        <label class="setting-label">Session length</label>
+        ${seg('holiday-min', String(h.minutes), [['15', '15 min'], ['20', '20 min'], ['30', '30 min']])}
+      </section>`
 }
 
 export function renderSettings({ isPhone }) {
@@ -62,6 +79,8 @@ export function renderSettings({ isPhone }) {
         <label class="toggle"><input type="checkbox" data-act="sound" ${d.sound ? 'checked' : ''}><span>Beep when rest is over</span></label>
         <label class="toggle"><input type="checkbox" data-act="wake" ${d.wake ? 'checked' : ''}><span>Keep the screen on during a workout</span></label>
       </section>
+
+      ${holidayCard()}
 
       <section class="card">
         <header class="card-head"><h2>${icon('moon', 18)} Appearance</h2></header>

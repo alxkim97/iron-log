@@ -66,10 +66,10 @@ function makeExercise(name, { entry = null, date = today(), exceptId = null, cou
 }
 
 // ── Entry points ──
-// `custom` is a picked list of { name, entry } (see src/catchup.js) for the
-// rest-day catch-up sheet — not tied to any single routine day, so it gets
-// its own 'Catch-up' program/title rather than borrowing one day's.
-export function startWorkout({ dayId = null, fromSessionId = null, custom = null } = {}) {
+// `custom` is a picked list of { name, entry } (catch-up sheet, Holiday
+// mode) — not tied to any single routine day, so it gets its own title
+// rather than borrowing one day's.
+export function startWorkout({ dayId = null, fromSessionId = null, custom = null, title = 'Catch-up' } = {}) {
   if (live) return resume()
   const day = dayId ? dayById(routine(), dayId) : null
   const src = fromSessionId ? sessionById(fromSessionId) : null
@@ -80,7 +80,7 @@ export function startWorkout({ dayId = null, fromSessionId = null, custom = null
   live = {
     mode: 'live', id: genId(), date: today(), startedAt: Date.now(),
     program: custom ? 'Other' : (day?.program || src?.program || 'Other'),
-    title: custom ? 'Catch-up' : (day?.name || ''),
+    title: custom ? title : (day?.name || ''),
     dayId: day?.id || null,
     notes: '', exercises, rest: null, photos: [],
   }

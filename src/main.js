@@ -3,6 +3,7 @@ import { isConfigured } from './config.js'
 import { getSession, onAuthChange, signOut } from './data.js'
 import {
   state, saveDevice, restoreCache, clearLocal, loadAll, flush, setOnChange, setPrefs, blobOp, routine, sortedSessions, achievements,
+  holiday, setHoliday, todaysHoliday,
 } from './store.js'
 import { today, addMonths, monthStart, clock, relDay } from './dates.js'
 import { esc, icon, toast, closeTopModal, modalOpen, openModal } from './ui.js'
@@ -14,7 +15,7 @@ import { renderToday } from './views/today.js'
 import { renderHistory, historyTitle, openSessionDetail, openPhoto } from './views/history.js'
 import { renderProgress } from './views/progress.js'
 import { renderBody } from './views/body.js'
-import { renderRoutine, editDay, resetRoutine } from './views/routine.js'
+import { renderRoutine, editDay, resetRoutine, planBuilder } from './views/routine.js'
 import { renderExercises, editExercise } from './views/exercises.js'
 import { renderSettings, syncLine, PREFS_SQL, PHOTOS_SQL } from './views/settings.js'
 import { initWorkout, startWorkout, resume, newSession, editSession, liveDraft, liveSummary, workoutOpen } from './workout.js'
@@ -349,6 +350,16 @@ root.addEventListener('click', async e => {
     case 'day-edit': return editDay(id, render)
     case 'day-new': return editDay(null, render)
     case 'routine-reset': return resetRoutine(render)
+    case 'plan-build': return planBuilder(render)
+    case 'holiday-start':
+      return startWorkout({ title: 'Holiday', custom: todaysHoliday().map(e => ({ name: e.name, entry: e })) })
+    case 'holiday-off': setHoliday({ on: false }); render(); return toast('Welcome back — routine is back on Today')
+    case 'holiday-eq': {
+      const cur = holiday().equipment
+      setHoliday({ equipment: cur.includes(value) ? cur.filter(k => k !== value) : [...cur, value] })
+      return render()
+    }
+    case 'holiday-min': setHoliday({ minutes: Number(value) }); return render()
     case 'lib-new': return editExercise(null, render)
     case 'lib-edit': return editExercise(name, render)
     case 'lib-m': state.ui.libm = value; return render()
@@ -376,6 +387,7 @@ root.addEventListener('click', async e => {
 root.addEventListener('change', e => {
   const act = e.target.dataset?.act
   if (act === 'sound' || act === 'wake') saveDevice({ [act]: e.target.checked })
+  if (act === 'holiday') { setHoliday({ on: e.target.checked }); render() }
 })
 
 root.addEventListener('submit', e => {

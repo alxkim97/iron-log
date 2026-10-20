@@ -1,5 +1,5 @@
 import { esc, icon } from '../ui.js'
-import { state, routine, sortedSessions, sessionVol, weekStreak, latestBw, sessionsBetween } from '../store.js'
+import { state, routine, sortedSessions, sessionVol, weekStreak, latestBw, sessionsBetween, holiday, todaysHoliday } from '../store.js'
 import { dayForDate, sortedDays } from '../routine.js'
 import { today, weekStart, addDays, longDate, DOW_LONG, dow, clock } from '../dates.js'
 import { catchupSuggestions } from '../catchup.js'
@@ -14,6 +14,7 @@ function hero() {
   const day = dayForDate(routine(), t)
   const doneToday = sortedSessions().filter(s => s.date === t)
   const live = liveSummary()
+  const away = holiday().on
   let h, sub, actions, color = 'var(--accent)'
   if (live) {
     h = 'Workout in progress'
@@ -25,6 +26,11 @@ function hero() {
     h = 'Done for today 💪'
     sub = `${esc(s.program)} · ${s.duration ? `${s.duration} min · ` : ''}${esc(fmtVol(sessionVol(s)))}`
     actions = `<button class="btn hero-btn" data-act="session" data-id="${esc(s.id)}">View session</button><button class="btn hero-ghost" data-act="start-sheet">Another workout</button>`
+  } else if (away) {
+    const plan = todaysHoliday()
+    h = `${icon('sun', 26)} Holiday mode`
+    sub = `${holiday().minutes}-min maintenance · ${esc(plan.map(e => e.name).join(' · '))}`
+    actions = `<button class="btn hero-btn" data-act="holiday-start">${icon('play', 18)} Start holiday workout</button><button class="btn hero-ghost" data-act="holiday-off">I'm back — turn off</button>`
   } else if (day) {
     color = programColor(day.program)
     h = `${esc(day.name)} day`
@@ -43,7 +49,8 @@ function hero() {
   }
   const ws = weekStart(t)
   const week = sessionsBetween(ws, addDays(ws, 6))
-  const planned = routine().days.filter(d => d.dow != null).length
+  // Holiday: 2–3 short sessions a week is enough to hold on to muscle.
+  const planned = away ? 3 : routine().days.filter(d => d.dow != null).length
   const bw = latestBw()
   const streak = weekStreak()
   return `
@@ -91,6 +98,7 @@ export function renderToday({ isPhone }) {
     </section>
     <section class="card">
       <header class="card-head"><h2>${icon('zap', 18)} Muscle volume</h2></header>
+      ${holiday().on ? '<p class="muted small">Holiday mode — maintenance only needs about a third of these targets, so low bars are fine this week.</p>' : ''}
       ${muscleBars()}
     </section>
     <section class="card">

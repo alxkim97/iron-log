@@ -13,7 +13,7 @@ export const GUIDES = {
   'Close-Grip Bench Press': G('Hands shoulder-width, no closer.', ['Elbows tucked close to the body', 'Touch lower chest', 'Lock out with the triceps'], 'Hands too narrow — wrist pain'),
   'Tricep Pushdown': G('Cable high, bar or rope at chest height.', ['Elbows pinned to your sides', 'Push down to full lockout', 'Only the forearms move'], 'Leaning over and using body weight'),
   'Triceps Rope Pushdown': G('Rope on a high pulley.', ['Elbows fixed at your sides', 'Split the rope apart at the bottom', 'Slow on the way up'], 'Elbows drifting forward'),
-  'Overhead Tricep Ext.': G('Face away from a low/mid cable, rope behind the head.', ['Elbows point forward and stay still', 'Extend fully overhead', 'Deep stretch behind the head'], 'Elbows flaring out wide'),
+  'Tricep Extension Cable': G('Face away from a low/mid cable, rope behind the head.', ['Elbows point forward and stay still', 'Extend fully overhead', 'Deep stretch behind the head'], 'Elbows flaring out wide'),
   'Skullcrusher (Dumbbell)': G('Lie flat, bells over shoulders.', ['Bend at the elbows only', 'Lower beside the head', 'Extend without moving the upper arm'], 'Upper arms swinging back and forth'),
   'Lateral Raise': G('Stand tall, slight lean forward, light bells.', ['Lead with the elbows, slight bend', 'Raise to shoulder height, not higher', '2–3 s down'], 'Swinging / shrugging the weight up'),
   'Smith Overhead Press': G('Seat under the bar, bar at chin height.', ['Brace core, ribs down', 'Press straight up, head through at the top', 'Lower to chin'], 'Over-arching the lower back'),
@@ -39,12 +39,27 @@ export const GUIDES = {
   'Smith Squat': G('Feet slightly in front of the bar, shoulder-width.', ['Brace, sit down and back', 'Thighs to parallel or below', 'Drive up through the whole foot'], 'Knees caving in'),
   'Leg Extension': G('Knee joint lined up with the machine pivot, pad on lower shin.', ['Extend to full lockout', 'Pause and squeeze the quads', '2–3 s down'], 'Kicking the weight up'),
   'Romanian Deadlift (Dumbbell)': G('Bells at the thighs, soft knees.', ['Push hips back, flat back', 'Lower to mid-shin with a hamstring stretch', 'Drive hips forward to stand'], 'Rounding the lower back'),
+  'Seated Leg Curl': G('Knees lined up with the pivot, pad just above the heels.', ['Curl the heels toward the seat', 'Pause and squeeze the hamstrings', '2–3 s back up'], 'Hips lifting off the seat'),
+  'Single-Leg RDL': G('Stand on one leg, soft knee, hands free or on hips.', ['Hinge forward, free leg reaching straight back', 'Hips stay square to the floor', 'Stand up by driving the hip forward'], 'Rounding the back to reach lower'),
+  'Cable Glute Kickback': G('Ankle strap on a low cable, hold the frame.', ['Slight forward lean, brace the core', 'Kick the leg back and up with the glute', 'Control the return'], 'Arching the lower back to swing higher'),
+  'Hip Thrust (Smith Machine)': G('Upper back on a bench, bar padded across the hips.', ['Feet flat, shins vertical at the top', 'Drive hips up until the body is flat', 'Squeeze the glutes 1 s'], 'Pushing through the toes or over-arching'),
+  'Glute Bridge': G('Lying on your back, knees bent, feet flat.', ['Press through the heels', 'Lift hips until knees-hips-shoulders line up', 'Squeeze 1–2 s at the top'], 'Arching the lower back instead of using the glutes'),
+  'Bodyweight Squat': G('Feet shoulder-width, toes slightly out.', ['Sit down and back, chest up', 'Thighs to parallel or below', 'Stand up through the whole foot'], 'Heels lifting or knees caving in'),
+  'Reverse Lunge': G('Stand tall, feet hip-width.', ['Step one foot back, lower the back knee toward the floor', 'Front shin stays roughly vertical', 'Push through the front heel to return'], 'Front knee collapsing inward'),
+  'Push-up': G('Hands just wider than shoulders, body in a straight line.', ['Lower the chest to just above the floor', 'Elbows ~45° from the body', 'Push the floor away to lockout'], 'Hips sagging — knees down is fine if form breaks'),
+  'Pike Push-up': G('Hips high in an upside-down V, hands shoulder-width.', ['Lower the top of the head toward the floor', 'Elbows track back, not out', 'Press back up to the V'], 'Turning it into a regular push-up by dropping the hips'),
+  'Bench Dip': G('Hands on a chair or bed edge behind you, legs out.', ['Lower until elbows reach ~90°', 'Keep the back close to the edge', 'Press up with the triceps'], 'Going too deep — strains the front of the shoulder'),
+  'Superman': G('Lie face down, arms overhead.', ['Lift arms, chest and legs together', 'Hold 2 s, squeeze the glutes', 'Lower slowly'], 'Cranking the neck up — keep eyes on the floor'),
+  'Dead Bug': G('Lie on your back, arms up, knees bent at 90°.', ['Press the lower back into the floor', 'Lower opposite arm and leg slowly', 'Return and switch sides'], 'Lower back lifting off the floor'),
   'Pallof Press': G('Cable at chest height, stand side-on.', ['Press the handle straight out', 'Resist the twist for 1–2 s', 'Bring it back to the chest'], 'Letting the hips rotate'),
   'Decline Crunch': G('Feet hooked on the decline bench.', ['Curl the ribs toward the hips', 'Lift shoulder blades only partway', 'Lower under control'], 'Pulling on the neck'),
   'Crunch': G('Lying, knees bent.', ['Curl ribs to hips', 'Exhale at the top', 'Slow down'], 'Neck pulling'),
   'Plank': G('Forearms under shoulders, body straight.', ['Squeeze glutes and brace abs', 'Hips level, not sagging', 'Breathe steadily'], 'Hips too high or sagging'),
   'Treadmill': G('Set speed and incline.', ['Upright posture, don\'t hang on the rails', 'Steady pace you can talk at', 'Cool down 2–3 min'], 'Holding the handrails at incline'),
 }
+
+// Logged history still uses the old name until it's renamed in Exercises.
+GUIDES['Overhead Tricep Ext.'] = GUIDES['Tricep Extension Cable']
 
 export const guideFor = name => GUIDES[name] || null
 export const videoLink = name => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} proper form`)}`

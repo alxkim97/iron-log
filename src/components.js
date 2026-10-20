@@ -2,7 +2,7 @@
 // and the one delegated click handler in main.js.
 import { esc, icon } from './ui.js'
 import { programColor, MUSCLES, fmtVol, fmtKg } from './model.js'
-import { sessionVol, muscleSets, lastTrained, routine, sortedSessions, isCardio, muscles } from './store.js'
+import { sessionVol, muscleSets, lastTrained, routine, sortedSessions, isCardio, muscles, holiday } from './store.js'
 import { exIcon } from './bodymap.js'
 import { today, weekStart, addDays, relDay, daysBetween, DOW_SHORT } from './dates.js'
 
@@ -30,7 +30,8 @@ export function sessionRow(s, { showDate = true } = {}) {
 // Sun → Sat of the current training week: planned day vs what happened.
 export function weekStrip(ref = today()) {
   const ws = weekStart(ref)
-  const r = routine()
+  // On holiday the routine isn't the plan, so skipped days aren't "missed".
+  const r = holiday().on ? { days: [] } : routine()
   const byDate = new Map()
   for (const s of sortedSessions()) if (s.date >= ws && s.date <= addDays(ws, 6)) { if (!byDate.has(s.date)) byDate.set(s.date, []); byDate.get(s.date).push(s) }
   return `<div class="wstrip">${Array.from({ length: 7 }, (_, i) => {

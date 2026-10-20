@@ -325,6 +325,22 @@ a.btn { text-decoration: none; }
 .mbar.s-low .mbar-val em { color: var(--amber); }
 .mbar.s-good .mbar-val em { color: var(--green); }
 
+.hero h1 .ico { display: inline-block; vertical-align: -2px; margin-right: 6px; color: var(--amber); }
+.card.tone-holiday { border-color: color-mix(in srgb, var(--amber) 40%, var(--border)); background: linear-gradient(180deg, var(--amber-weak), var(--surface) 70%); }
+.card.tone-holiday .card-head h2 .ico { color: var(--amber); }
+.chip-row + .setting-label, .seg + .setting-label, .toggle + .setting-label { margin-top: 14px; }
+
+.plan-btn { margin-bottom: 14px; }
+.pb-fit { margin: 10px 0 14px; }
+.pb-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.pb-day { padding: 10px 12px; border-radius: var(--r); background: var(--surface-2); border-top: 3px solid var(--c); }
+.pb-day h3 { display: flex; align-items: center; gap: 8px; font-size: 14.5px; margin: 0 0 6px; }
+.pb-day h3 span { font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 5px; background: color-mix(in srgb, var(--c) var(--tint), var(--surface)); }
+.pb-day ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.pb-day li { display: flex; justify-content: space-between; gap: 8px; }
+.pb-day li span { font-weight: 550; }
+.pb-day em { font-style: normal; color: var(--text3); font-size: 12px; white-space: nowrap; }
+
 .catchup-list { max-height: 50vh; overflow-y: auto; }
 .catchup-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--r); background: var(--surface-2); cursor: pointer; }
 .catchup-row input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }

@@ -5,6 +5,7 @@ import { buildLibrary, makeMuscleLookup, normalizeSession, exerciseStats, MUSCLE
 import { DEFAULT_ROUTINE, cloneRoutine } from './routine.js'
 import { today, addDays, weekStart, daysBetween, dow } from './dates.js'
 import { achievementDefs } from './achievements.js'
+import { minutesPerSet, holidaySession, GYM_EQUIPMENT, DEFAULT_HOLIDAY } from './planner.js'
 
 const DEVICE_KEY = 'il_prefs'
 const CACHE_KEY = 'il_cache'
@@ -329,6 +330,31 @@ export function latestBw() {
 
 export function achievements() {
   return achievementDefs({ sessions: state.sessions, bwLog: state.bwLog, checkins: state.checkins, volOf: sessionVol })
+}
+
+// ── Plan builder / Holiday mode ──
+export const gymEquipment = () => state.prefs.equipment || GYM_EQUIPMENT
+export const holiday = () => ({ ...DEFAULT_HOLIDAY, ...(state.prefs.holiday || {}) })
+export const setHoliday = patch => setPrefs({ holiday: { ...holiday(), ...patch } })
+
+// What the planner reads from history: how often each exercise has been
+// done, how far each muscle is under its minimum over the last 4 weeks
+// (0 = on target, 1 = untouched), and the user's own minutes per set.
+export function planContext() {
+  const { ex, library: lib, sorted, lookup } = D()
+  const sets = muscleSets(addDays(today(), -27), today())
+  return {
+    library: lib,
+    familiarity: name => ex.get(name.toLowerCase())?.entries.length || 0,
+    behind: Object.fromEntries(MUSCLES.map(m => [m.key, Math.max(0, 1 - sets[m.key] / 4 / m.min)])),
+    perSet: minutesPerSet(sorted, n => lookup(n).primary === 'Cardio'),
+  }
+}
+
+export function todaysHoliday() {
+  const h = holiday()
+  const done = sessionsBetween(addDays(today(), -13), today()).filter(s => s.title === 'Holiday').length
+  return holidaySession({ ...planContext(), equipment: h.equipment, minutes: h.minutes, variant: done })
 }
 
 export const plannedThisWeek = r => (r || routine()).days.filter(d => d.dow != null).length

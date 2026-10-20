@@ -1,7 +1,8 @@
-import { esc, icon, openModal, confirmBox, toast } from '../ui.js'
-import { state, routine, setRoutine, lastFor, isCardio } from '../store.js'
+import { esc, icon, openModal, confirmBox, toast, seg } from '../ui.js'
+import { state, routine, setRoutine, lastFor, isCardio, planContext, gymEquipment, setPrefs, sortedSessions } from '../store.js'
 import { cloneRoutine, sortedDays, DEFAULT_ROUTINE } from '../routine.js'
 import { PROGRAMS, programColor, fmtSet } from '../model.js'
+import { EQUIPMENT, buildPlan, exercisesThatFit } from '../planner.js'
 import { exThumb } from '../components.js'
 import { DOW_LONG, DOW_SHORT, dow, today } from '../dates.js'
 import { pickExercise } from '../picker.js'
@@ -14,6 +15,7 @@ export function renderRoutine() {
   return `
     <div class="routine">
       <p class="muted">Your week. <b>Start</b> fills the workout with these exercises and last time's numbers.${state.prefsCloud ? '' : ' <span class="warn-text">Saved on this device only until iron_prefs is set up (Settings).</span>'}</p>
+      <button class="btn soft plan-btn" data-act="plan-build">${icon('dumbbell', 16)} Build a plan from my equipment</button>
       <div class="day-grid">
         ${days.map(d => `
           <section class="card day-card${d.dow === t ? ' is-today' : ''}" style="--c:${programColor(d.program)}">
@@ -30,6 +32,78 @@ export function renderRoutine() {
       ${rest.length ? `<p class="muted small">Rest: ${rest.join(', ')}</p>` : ''}
       <button class="btn ghost small" data-act="routine-reset">Reset to the default routine</button>
     </div>`
+}
+
+const MINUTES = [20, 30, 45, 60]
+
+// Typical session length from recent history, snapped to a builder option.
+function typicalMinutes() {
+  const d = sortedSessions().slice(0, 40).map(s => s.duration).filter(x => x > 0).sort((a, b) => a - b)
+  if (!d.length) return 45
+  const mid = d[Math.floor(d.length / 2)]
+  return MINUTES.reduce((a, b) => Math.abs(b - mid) < Math.abs(a - mid) ? b : a)
+}
+
+export function planBuilder(rerender) {
+  const ctx = planContext()
+  const planned = routine().days.filter(d => d.dow != null).length
+  const v = { equipment: [...gymEquipment()], days: Math.min(6, Math.max(2, planned || 4)), minutes: typicalMinutes() }
+  let plan = null
+  const m = openModal('', { cls: 'tall', wide: true })
+  const draw = () => {
+    plan = buildPlan({ ...ctx, equipment: v.equipment, days: v.days, minutes: v.minutes })
+    const fit = exercisesThatFit(v.minutes, 3, ctx.perSet)
+    // Long rests are usually what makes a short session overflow.
+    const rest = state.prefs.restSecs || 90
+    const fitShortRest = rest >= 150 ? exercisesThatFit(v.minutes, 3, Math.max(1.5, ctx.perSet - (rest - 90) / 60)) : fit
+    const restTip = fitShortRest > fit ? ` Tip: your rest timer is ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, '0')} — at 1:30 between sets, ${fitShortRest} would fit.` : ''
+    m.el.innerHTML = `
+      <header class="modal-head"><h2>${icon('dumbbell', 18)} Build a plan</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+      <div class="modal-body">
+        <p class="muted small">Pick what your gym has, how often you can train and how long you've got. Exercises you already know are preferred, and the muscles you're furthest behind on go first in each day — so if time runs out, what you skip is the least needed.</p>
+        <label class="setting-label">Equipment <span class="muted small">(bodyweight always counts)</span></label>
+        <div class="chip-row wrap">
+          ${EQUIPMENT.map(([k, label]) => `<button type="button" class="fchip${v.equipment.includes(k) ? ' on' : ''}" data-x="eq" data-value="${esc(k)}">${esc(label)}</button>`).join('')}
+        </div>
+        <label class="setting-label">Days a week</label>
+        ${seg('pb-days', String(v.days), ['2', '3', '4', '5', '6'].map(n => [n, n]))}
+        <label class="setting-label">Time per session</label>
+        ${seg('pb-min', String(v.minutes), MINUTES.map(n => [String(n), `${n} min`]))}
+        <p class="muted small pb-fit">${fit} exercises a day fit at your pace — about ${ctx.perSet} min per set including rest, from your recent sessions.${restTip}</p>
+        <div class="pb-days">
+          ${plan.days.map(d => `
+            <section class="pb-day" style="--c:${programColor(d.program)}">
+              <h3><span>${DOW_SHORT[d.dow]}</span>${esc(d.name)}</h3>
+              <ol>${d.exercises.map(e => `<li><span>${esc(e.name)}</span><em>${e.sets} × ${esc(e.reps)}</em></li>`).join('') || '<li class="muted">Nothing fits this equipment</li>'}</ol>
+            </section>`).join('')}
+        </div>
+      </div>
+      <footer class="modal-foot">
+        <span></span>
+        <div class="row-gap"><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-x="use">Use this plan</button></div>
+      </footer>`
+  }
+  m.el.addEventListener('click', async e => {
+    const a = e.target.closest('[data-act]')
+    if (a?.dataset.act === 'pb-days') { v.days = Number(a.dataset.value); return draw() }
+    if (a?.dataset.act === 'pb-min') { v.minutes = Number(a.dataset.value); return draw() }
+    const x = e.target.closest('[data-x]')
+    if (x?.dataset.x === 'eq') {
+      const k = x.dataset.value
+      v.equipment = v.equipment.includes(k) ? v.equipment.filter(q => q !== k) : [...v.equipment, k]
+      return draw()
+    }
+    if (x?.dataset.x === 'use') {
+      if (!(await confirmBox(`Replace your current routine with this ${v.days}-day plan? You can undo right after.`, { ok: 'Use plan', danger: false }))) return
+      const prev = cloneRoutine(routine())
+      setPrefs({ equipment: v.equipment })
+      setRoutine(plan)
+      m.close(true)
+      rerender()
+      toast('New plan saved', { label: 'Undo', run: () => { setRoutine(prev); rerender() } })
+    }
+  })
+  draw()
 }
 
 export async function resetRoutine(rerender) {
