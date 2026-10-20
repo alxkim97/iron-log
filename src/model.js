@@ -69,6 +69,7 @@ export const DEFAULT_LIBRARY = [
   L('Leg Press', 'Quads', ['Glutes'], 'Machine'),
   L('Squat (Dumbbell)', 'Quads', ['Glutes'], 'Dumbbells'),
   L('Romanian Deadlift (Dumbbell)', 'Hamstrings', ['Glutes', 'Back'], 'Dumbbells'),
+  L('Cable Glute Kickback', 'Glutes', ['Hamstrings'], 'Cable'),
   L('Pallof Press', 'Core', [], 'Cable', 'Anti-rotation'),
   L('Decline Crunch', 'Core', [], 'Bodyweight'),
   L('Crunch', 'Core', [], 'Bodyweight'),

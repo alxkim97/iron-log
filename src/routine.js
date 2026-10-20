@@ -29,11 +29,13 @@ export const DEFAULT_ROUTINE = {
       E('Reverse Curl EZ Bar', 3, '10–15'),
     ] },
     { id: 'legs', name: 'Legs', program: 'Legs', dow: 3, exercises: [
+      E('Smith Squat', 3, '6–12', 'Legs anchor'),
+      E('Romanian Deadlift (Dumbbell)', 3, '8–12'),
+      E('Cable Glute Kickback', 3, '12–15'),
       E('Leg Extension', 3, '10–15'),
-      E('Pallof Press', 3, '12–15'),
       E('Back Extension', 3, '10–15'),
+      E('Pallof Press', 3, '12–15'),
       E('Decline Crunch', 3, '15–20'),
-      E('Smith Squat', 3, '6–12'),
     ] },
     { id: 'upper', name: 'Upper', program: 'Upper', dow: 4, exercises: [
       E('Smith Bench Press', 3, '6–10', 'Compound anchor'),
