@@ -246,6 +246,7 @@ a.btn { text-decoration: none; }
 .mchip { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--text2); }
 .mchip.ghost { background: transparent; border: 1px solid var(--border-2); color: var(--text3); }
 .mchip.up { background: var(--green-weak); color: var(--green); }
+.mchip.max { background: var(--amber-weak); color: var(--amber); }
 .mchip.warn { background: var(--amber-weak); color: var(--amber); }
 .mchip .ico { display: inline-block; }
 
@@ -329,6 +330,34 @@ a.btn { text-decoration: none; }
 .card.tone-holiday { border-color: color-mix(in srgb, var(--amber) 40%, var(--border)); background: linear-gradient(180deg, var(--amber-weak), var(--surface) 70%); }
 .card.tone-holiday .card-head h2 .ico { color: var(--amber); }
 .chip-row + .setting-label, .seg + .setting-label, .toggle + .setting-label { margin-top: 14px; }
+
+.hero-swap { display: block; margin-top: 8px; font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--amber) 55%, #fff); }
+
+.gym-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 12px; }
+.gym-row { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: var(--r); background: var(--surface-2); border: 1px solid transparent; }
+.gym-row.on { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-weak); }
+.gym-pick { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; min-width: 0; }
+.gym-chips { margin-bottom: 14px; }
+.gym-weights { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(70px, 120px) minmax(70px, 120px); gap: 6px 10px; align-items: center; }
+.gw-head { font-size: 11.5px; font-weight: 650; color: var(--text3); }
+.gw-name { font-weight: 550; font-size: 13.5px; }
+.gym-weights input, .measure-add input { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--border-2); background: var(--surface); color: var(--text); font-variant-numeric: tabular-nums; }
+.gym-caps { display: flex; flex-wrap: wrap; gap: 6px; }
+.gym-cap { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 8px; background: var(--surface-2); font-size: 13px; text-transform: capitalize; }
+
+.adj-list { margin: 14px 0 6px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.adj-list li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 9px; background: var(--surface-2); font-size: 13.5px; }
+.adj-list li span { font-weight: 600; }
+.adj-list li em { font-style: normal; color: var(--text3); white-space: nowrap; }
+.adj-list li.skip { opacity: .5; }
+.adj-list li.skip span { text-decoration: line-through; }
+
+.measure-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; align-items: end; margin: 12px 0; }
+.measure-add .field { margin: 0; }
+.measure-add input[type=date] { grid-column: 1 / -1; }
+.measure-table { display: grid; grid-template-columns: minmax(70px, auto) repeat(4, minmax(48px, 1fr)) 32px; gap: 6px 8px; align-items: center; font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-x: auto; }
+.mt-head { font-size: 11.5px; font-weight: 650; color: var(--text3); }
+.mt-val { display: flex; gap: 4px; align-items: baseline; flex-wrap: wrap; }
 
 .plan-btn { margin-bottom: 14px; }
 .pb-fit { margin: 10px 0 14px; }

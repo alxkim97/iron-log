@@ -3,6 +3,7 @@ import { state, holiday } from '../store.js'
 import { timeAgo } from '../dates.js'
 import { MUSCLES } from '../model.js'
 import { EQUIPMENT } from '../planner.js'
+import { gymsCard } from './gyms.js'
 
 export const PREFS_SQL = `create table if not exists iron_prefs (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -74,11 +75,17 @@ export function renderSettings({ isPhone }) {
 
       <section class="card">
         <header class="card-head"><h2>${icon('timer', 18)} Workout</h2></header>
-        <label class="setting-label">Rest timer after each set</label>
-        ${seg('rest', String(state.prefs.restSecs || 90), [['60', '1:00'], ['90', '1:30'], ['120', '2:00'], ['180', '3:00'], ['0', 'Off']])}
+        <label class="setting-label">Rest after main lifts <span class="muted small">(squat, bench, rows marked as the day's main lift)</span></label>
+        ${seg('rest', String(state.prefs.restSecs ?? 90), [['90', '1:30'], ['120', '2:00'], ['150', '2:30'], ['180', '3:00'], ['0', 'Off']])}
+        <label class="setting-label">Rest after other exercises</label>
+        ${seg('rest-short', String(state.prefs.restShort ?? 90), [['45', '0:45'], ['60', '1:00'], ['75', '1:15'], ['90', '1:30'], ['120', '2:00'], ['0', 'Off']])}
         <label class="toggle"><input type="checkbox" data-act="sound" ${d.sound ? 'checked' : ''}><span>Beep when rest is over</span></label>
+        <label class="toggle"><input type="checkbox" data-act="notify" ${d.notify ? 'checked' : ''}><span>Notify when rest is over while the app is in the background</span></label>
+        <p class="muted small">Works in the PC app and Android browsers. On iPhone the app pauses once you leave it, so keep it open on screen during rest.</p>
         <label class="toggle"><input type="checkbox" data-act="wake" ${d.wake ? 'checked' : ''}><span>Keep the screen on during a workout</span></label>
       </section>
+
+      ${gymsCard()}
 
       ${holidayCard()}
 

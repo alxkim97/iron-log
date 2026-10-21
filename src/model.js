@@ -212,14 +212,15 @@ export function parseRepRange(txt) {
 }
 
 // Progression nudge: every working set last time reached the top of the
-// range → add the smallest sensible jump.
-export function suggestNext(lastSets, repRange, cardio) {
+// range → add the smallest sensible jump. With a gym setup, `step` is that
+// gym's increment and nothing above `limit` (the heaviest there) is offered.
+export function suggestNext(lastSets, repRange, cardio, { step = null, limit = null } = {}) {
   if (cardio || !lastSets?.length || !repRange) return null
   const work = lastSets.filter(s => !isWarmup(s) && s.weight > 0)
   if (!work.length) return null
   const top = Math.max(...work.map(s => s.weight))
   const atTop = work.filter(s => s.weight === top)
   if (!atTop.every(s => s.reps >= repRange[1])) return null
-  const step = top < 20 ? 1 : 2.5
-  return top + step
+  const next = top + (step || (top < 20 ? 1 : 2.5))
+  return limit && next > limit ? null : next
 }

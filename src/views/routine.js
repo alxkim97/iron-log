@@ -1,5 +1,6 @@
 import { esc, icon, openModal, confirmBox, toast, seg } from '../ui.js'
-import { state, routine, setRoutine, lastFor, isCardio, planContext, gymEquipment, setPrefs, sortedSessions } from '../store.js'
+import { state, routine, setRoutine, lastFor, isCardio, planContext, gymEquipment, setPrefs, sortedSessions, gyms, activeGym } from '../store.js'
+import { gymChips } from './gyms.js'
 import { cloneRoutine, sortedDays, DEFAULT_ROUTINE } from '../routine.js'
 import { PROGRAMS, programColor, fmtSet } from '../model.js'
 import { EQUIPMENT, buildPlan, exercisesThatFit } from '../planner.js'
@@ -47,20 +48,21 @@ function typicalMinutes() {
 export function planBuilder(rerender) {
   const ctx = planContext()
   const planned = routine().days.filter(d => d.dow != null).length
-  const v = { equipment: [...gymEquipment()], days: Math.min(6, Math.max(2, planned || 4)), minutes: typicalMinutes() }
+  const v = { gym: activeGym()?.id || null, equipment: [...gymEquipment()], days: Math.min(6, Math.max(2, planned || 4)), minutes: typicalMinutes() }
   let plan = null
   const m = openModal('', { cls: 'tall', wide: true })
   const draw = () => {
-    plan = buildPlan({ ...ctx, equipment: v.equipment, days: v.days, minutes: v.minutes })
-    const fit = exercisesThatFit(v.minutes, 3, ctx.perSet)
-    // Long rests are usually what makes a short session overflow.
-    const rest = state.prefs.restSecs || 90
-    const fitShortRest = rest >= 150 ? exercisesThatFit(v.minutes, 3, Math.max(1.5, ctx.perSet - (rest - 90) / 60)) : fit
-    const restTip = fitShortRest > fit ? ` Tip: your rest timer is ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, '0')} — at 1:30 between sets, ${fitShortRest} would fit.` : ''
+    // Pace from the rest timers: one main lift on the long rest, the rest on the short one.
+    const restMain = state.prefs.restSecs ?? 90, restShort = state.prefs.restShort ?? 90
+    const perSet = Math.round((0.75 + (restMain + 2 * restShort) / 3 / 60) * 10) / 10
+    plan = buildPlan({ ...ctx, perSet, equipment: v.equipment, days: v.days, minutes: v.minutes })
+    const fit = exercisesThatFit(v.minutes, 3, perSet)
+    const restTip = restShort >= 120 ? ' Shorter rest for accessories (Settings → Workout) would fit more.' : ''
     m.el.innerHTML = `
       <header class="modal-head"><h2>${icon('dumbbell', 18)} Build a plan</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
       <div class="modal-body">
         <p class="muted small">Pick what your gym has, how often you can train and how long you've got. Exercises you already know are preferred, and the muscles you're furthest behind on go first in each day — so if time runs out, what you skip is the least needed.</p>
+        ${gyms().length ? `<label class="setting-label">Fill in from a gym</label>${gymChips('data-x', v.gym)}` : ''}
         <label class="setting-label">Equipment <span class="muted small">(bodyweight always counts)</span></label>
         <div class="chip-row wrap">
           ${EQUIPMENT.map(([k, label]) => `<button type="button" class="fchip${v.equipment.includes(k) ? ' on' : ''}" data-x="eq" data-value="${esc(k)}">${esc(label)}</button>`).join('')}
@@ -69,7 +71,7 @@ export function planBuilder(rerender) {
         ${seg('pb-days', String(v.days), ['2', '3', '4', '5', '6'].map(n => [n, n]))}
         <label class="setting-label">Time per session</label>
         ${seg('pb-min', String(v.minutes), MINUTES.map(n => [String(n), `${n} min`]))}
-        <p class="muted small pb-fit">${fit} exercises a day fit at your pace — about ${ctx.perSet} min per set including rest, from your recent sessions.${restTip}</p>
+        <p class="muted small pb-fit">${fit} exercises a day fit — about ${perSet} min per set with your rest timers (main lifts ${Math.floor(restMain / 60)}:${String(restMain % 60).padStart(2, '0')}, others ${Math.floor(restShort / 60)}:${String(restShort % 60).padStart(2, '0')}).${restTip}</p>
         <div class="pb-days">
           ${plan.days.map(d => `
             <section class="pb-day" style="--c:${programColor(d.program)}">
@@ -88,9 +90,15 @@ export function planBuilder(rerender) {
     if (a?.dataset.act === 'pb-days') { v.days = Number(a.dataset.value); return draw() }
     if (a?.dataset.act === 'pb-min') { v.minutes = Number(a.dataset.value); return draw() }
     const x = e.target.closest('[data-x]')
+    if (x?.dataset.x === 'gym') {
+      const g = gyms().find(q => q.id === x.dataset.value)
+      if (g) { v.gym = g.id; v.equipment = [...g.equipment] }
+      return draw()
+    }
     if (x?.dataset.x === 'eq') {
       const k = x.dataset.value
       v.equipment = v.equipment.includes(k) ? v.equipment.filter(q => q !== k) : [...v.equipment, k]
+      v.gym = null
       return draw()
     }
     if (x?.dataset.x === 'use') {

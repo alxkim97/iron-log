@@ -5,7 +5,7 @@ import { buildLibrary, makeMuscleLookup, normalizeSession, exerciseStats, MUSCLE
 import { DEFAULT_ROUTINE, cloneRoutine } from './routine.js'
 import { today, addDays, weekStart, daysBetween, dow } from './dates.js'
 import { achievementDefs } from './achievements.js'
-import { minutesPerSet, holidaySession, GYM_EQUIPMENT, DEFAULT_HOLIDAY } from './planner.js'
+import { minutesPerSet, holidaySession, swapIdea, isMainEntry, GYM_EQUIPMENT, DEFAULT_HOLIDAY } from './planner.js'
 
 const DEVICE_KEY = 'il_prefs'
 const CACHE_KEY = 'il_cache'
@@ -235,7 +235,7 @@ function D() {
       if (!ex.has(k)) ex.set(k, { key: k, name: e.name, entries: [] })
       const rec = ex.get(k)
       rec.name = e.name
-      rec.entries.push({ date: s.date, sid: s.id, ex: e, st: exerciseStats(e, lookup(e.name).primary === 'Cardio') })
+      rec.entries.push({ date: s.date, sid: s.id, gym: s.gymId || null, ex: e, st: exerciseStats(e, lookup(e.name).primary === 'Cardio') })
     }
   }
   derived = { library, lookup, sorted, ex, vol: new Map() }
@@ -258,15 +258,20 @@ export function sessionVol(s) {
   return v
 }
 
-// Last time this exercise was done, before a given date (or ever).
-export function lastFor(name, beforeDate = '9999', exceptId = null) {
+// Last time this exercise was done, before a given date (or ever). With a
+// gym, that gym's last time wins (machines differ between gyms); otherwise
+// the latest anywhere.
+export function lastFor(name, beforeDate = '9999', exceptId = null, gymId = null) {
   const h = historyFor(name)
   if (!h) return null
+  let any = null
   for (let i = h.entries.length - 1; i >= 0; i--) {
     const e = h.entries[i]
-    if (e.date <= beforeDate && e.sid !== exceptId) return e
+    if (e.date > beforeDate || e.sid === exceptId) continue
+    if (!gymId || e.gym === gymId) return e
+    any ||= e
   }
-  return null
+  return any
 }
 
 // Best-ever numbers, optionally ignoring one session (to detect new PRs).
@@ -332,8 +337,64 @@ export function achievements() {
   return achievementDefs({ sessions: state.sessions, bwLog: state.bwLog, checkins: state.checkins, volOf: sessionVol })
 }
 
+// ── Gyms ──
+// Each { id, name, equipment: [keys], weights: { key: { max, step } },
+// caps: { exercise name (lower case): heaviest kg } }.
+export const gyms = () => state.prefs.gyms || []
+export const activeGym = () => gyms().find(g => g.id === state.prefs.activeGym) || null
+export const gymById = id => gyms().find(g => g.id === id) || null
+export const saveGym = g => setPrefs({ gyms: [...gyms().filter(x => x.id !== g.id), g] })
+export const setActiveGym = id => setPrefs({ activeGym: id || null })
+export function deleteGym(id) {
+  setPrefs({ gyms: gyms().filter(g => g.id !== id), ...(state.prefs.activeGym === id ? { activeGym: null } : {}) })
+}
+
+// Heaviest weight and increment for an exercise at a gym: a per-exercise
+// cap beats the equipment-wide range.
+export function gymLoad(name, gym = activeGym()) {
+  if (!gym) return {}
+  const entry = library().find(e => e.name.toLowerCase() === String(name).toLowerCase())
+  const w = String(entry?.equipment || '').split(/[,/]/).map(s => gym.weights?.[s.trim()]).find(Boolean) || {}
+  return { limit: gym.caps?.[String(name).toLowerCase()] || w.max || null, step: w.step || null }
+}
+export function setCap(name, kg) {
+  const g = activeGym()
+  if (!g) return
+  const caps = { ...(g.caps || {}) }
+  if (kg > 0) caps[name.toLowerCase()] = kg
+  else delete caps[name.toLowerCase()]
+  saveGym({ ...g, caps })
+}
+
+// Rest after a set: main lifts get the long rest, everything else the short one. 0 = off.
+export const isMainLift = (name, entry) =>
+  isMainEntry(entry) || /anchor/i.test(library().find(e => e.name.toLowerCase() === name.toLowerCase())?.notes || '')
+export const restFor = main => main ? (state.prefs.restSecs ?? 90) : (state.prefs.restShort ?? 90)
+
+// ── Body measurements (cm), keyed by date ──
+export const MEASURES = [['waist', 'Waist'], ['chest', 'Chest'], ['arm', 'Arm'], ['thigh', 'Thigh']]
+export const measurements = () => Object.entries(state.prefs.measure || {}).map(([date, v]) => ({ date, ...v })).sort((a, b) => b.date.localeCompare(a.date))
+export function setMeasurement(date, values) {
+  const all = { ...(state.prefs.measure || {}) }
+  if (values) all[date] = values
+  else delete all[date]
+  setPrefs({ measure: all })
+}
+
 // ── Plan builder / Holiday mode ──
-export const gymEquipment = () => state.prefs.equipment || GYM_EQUIPMENT
+export const gymEquipment = () => activeGym()?.equipment || state.prefs.equipment || GYM_EQUIPMENT
+
+// How far each muscle is under its weekly minimum over the last 7 days.
+export function weekBehind() {
+  const sets = muscleSets(addDays(today(), -6), today())
+  return Object.fromEntries(MUSCLES.map(m => [m.key, Math.max(0, 1 - sets[m.key] / m.min)]))
+}
+
+// Today's swap suggestion for a routine day (see swapIdea in planner.js).
+export function swapFor(day, gym = activeGym()) {
+  const ctx = planContext()
+  return swapIdea(day, { ...ctx, behind: weekBehind(), equipment: gym?.equipment || gymEquipment(), muscleOf: n => muscles(n).primary })
+}
 export const holiday = () => ({ ...DEFAULT_HOLIDAY, ...(state.prefs.holiday || {}) })
 export const setHoliday = patch => setPrefs({ holiday: { ...holiday(), ...patch } })
 

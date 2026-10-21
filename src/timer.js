@@ -51,6 +51,23 @@ function beep() {
   } catch {}
 }
 
+// System notification when the app isn't on screen. Works in the desktop
+// app and in browsers that keep running in the background; an iPhone
+// freezes the web app once it's left, so nothing can fire there.
+export async function enableNotify() {
+  if (!('Notification' in window)) return 'unsupported'
+  if (Notification.permission === 'default') { try { await Notification.requestPermission() } catch {} }
+  return Notification.permission
+}
+function notify() {
+  if (!state.device.notify || !('Notification' in window) || Notification.permission !== 'granted') return
+  if (document.visibilityState === 'visible' && document.hasFocus()) return
+  const opts = { body: 'Time for your next set', tag: 'iron-rest', renotify: true, requireInteraction: false }
+  const plain = () => { try { new Notification('Rest over', opts) } catch {} }
+  if (navigator.serviceWorker?.controller) navigator.serviceWorker.ready.then(r => r.showNotification('Rest over', opts)).catch(plain)
+  else plain()
+}
+
 // Full-width banner so the end of rest is obvious even at arm's length.
 let bannerTimer
 function restDone() {
@@ -99,6 +116,7 @@ function run() {
       clearInterval(ticker); ticker = null
       beep()
       navigator.vibrate?.([400, 150, 400, 150, 600])
+      notify()
       restDone()
       onEnd(null)
     }

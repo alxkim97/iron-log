@@ -1,5 +1,5 @@
 import { esc, icon, seg } from '../ui.js'
-import { state, sessionsBetween, latestBw } from '../store.js'
+import { state, sessionsBetween, latestBw, measurements, MEASURES } from '../store.js'
 import { today, addDays, weekStart, dow, shortDate, fullDate } from '../dates.js'
 import { fmtKg } from '../model.js'
 import { lineChart } from '../charts.js'
@@ -42,6 +42,34 @@ export function checkinCard({ compact = false } = {}) {
 
 const RANGES = [['90', '3 months'], ['365', '1 year'], ['all', 'All']]
 
+// Tape measurements: what changes when muscle grows or fat drops, which
+// body weight alone can't separate.
+function measureCard() {
+  const list = measurements()
+  const first = [...list].reverse()
+  const startOf = k => first.find(m => m[k])?.[k]
+  const diff = (k, v) => { const s = startOf(k); const d = s && v ? Math.round((v - s) * 10) / 10 : 0; return d ? `<span class="delta ${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : ''}${d}</span>` : '' }
+  return `
+    <section class="card">
+      <header class="card-head"><h2>${icon('scale', 18)} Measurements</h2><span class="muted small">cm</span></header>
+      <p class="muted small">Every 2–4 weeks, same time of day, before eating. Waist at the belly button, relaxed. Chest across the nipples. Arm flexed, at the biggest point. Thigh halfway between hip and knee. Arm and thigh going up while waist holds is muscle; waist going up is mostly fat.</p>
+      <form class="measure-add" data-form="measure">
+        <input type="date" name="d" value="${today()}" max="${today()}" aria-label="Date">
+        ${MEASURES.map(([k, l]) => `<label class="field">${l}<input name="${k}" inputmode="decimal" placeholder="${(v => v ? esc(fmtKg(v)) : '—')(list.find(m => m[k])?.[k])}" autocomplete="off"></label>`).join('')}
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+      ${list.length ? `
+        <div class="measure-table">
+          <span class="mt-head">Date</span>${MEASURES.map(([, l]) => `<span class="mt-head">${l}</span>`).join('')}<span></span>
+          ${list.map(m => `
+            <span>${esc(shortDate(m.date))}</span>
+            ${MEASURES.map(([k]) => `<span class="mt-val">${m[k] ? `${esc(fmtKg(m[k]))} ${m === list[0] ? diff(k, m[k]) : ''}` : '—'}</span>`).join('')}
+            <button class="icon-btn small" data-act="measure-del" data-date="${esc(m.date)}" aria-label="Delete">${icon('x', 14)}</button>`).join('')}
+        </div>
+        ${list.length > 1 ? `<p class="muted small">Changes on the latest row are since your first measurement.</p>` : ''}` : '<p class="muted">No measurements yet.</p>'}
+    </section>`
+}
+
 export function renderBody() {
   const range = state.ui.bwRange || '90'
   const from = range === 'all' ? '0000' : addDays(today(), -Number(range))
@@ -63,6 +91,7 @@ export function renderBody() {
             <button class="btn primary" type="submit">Log weight</button>
           </form>
         </section>
+        ${measureCard()}
         <section class="card">
           <header class="card-head"><h2>Entries</h2><span class="muted small">${list.length}</span></header>
           <div class="table-list">

@@ -82,3 +82,47 @@ test('minutes per set is the median of recent sessions, clamped', () => {
   assert.equal(minutesPerSet([]), 2.5)
   assert.equal(minutesPerSet([s(0, 10), s(10, 2)]), 2.5)
 })
+
+import { fitToTime, swapIdea, suggestFor, isMainEntry } from '../src/planner.js'
+import { suggestNext } from '../src/model.js'
+
+test('time box keeps exercises in order while they fit, always at least one', () => {
+  const day = [
+    { name: 'Smith Squat', sets: 3, notes: 'Legs anchor' },
+    { name: 'Romanian Deadlift (Dumbbell)', sets: 3 },
+    { name: 'Leg Extension', sets: 3 },
+    { name: 'Decline Crunch', sets: 3 },
+  ]
+  const rest = e => (isMainEntry(e) ? 180 : 90)
+  // squat 3×(0.75+3)+1 = 12.25, others 3×(0.75+1.5)+1 = 7.75 each
+  assert.deepEqual(fitToTime(day, 20, rest).exercises.map(e => e.name), ['Smith Squat', 'Romanian Deadlift (Dumbbell)'])
+  assert.equal(fitToTime(day, 5, rest).exercises.length, 1)
+  assert.equal(fitToTime(day, 60, rest).exercises.length, 4)
+})
+
+test('swap: furthest-behind untrained muscle replaces the last on-track accessory', () => {
+  const day = { exercises: [
+    { name: 'Seated Cable Row', sets: 3, notes: 'Compound anchor' },
+    { name: 'Wrist Curl', sets: 3 },
+    { name: 'EZ Bar Curl', sets: 3 },
+  ] }
+  const behind = { Back: 0, Forearms: 0, Biceps: 0.2, Hamstrings: 1, Glutes: 0.9, Chest: 0.4 }
+  const idea = swapIdea(day, { library, equipment: GYM_EQUIPMENT, familiarity: () => 0, behind, muscleOf })
+  assert.equal(idea.muscle, 'Hamstrings')
+  assert.equal(idea.out.name, 'EZ Bar Curl')
+  assert.equal(muscleOf(idea.in.name), 'Hamstrings')
+  assert.equal(swapIdea(day, { library, equipment: GYM_EQUIPMENT, familiarity: () => 0, behind: { Back: 0 }, muscleOf }), null)
+})
+
+test('suggestFor respects equipment and exclusions', () => {
+  assert.equal(suggestFor('Hamstrings', { library, equipment: ['Machine'] }).name, 'Seated Leg Curl')
+  assert.equal(byName.get(suggestFor('Hamstrings', { library, equipment: [], exclude: [] }).name).equipment, 'Bodyweight')
+})
+
+test('weight suggestion uses the gym step and stops at its heaviest', () => {
+  const last = [{ type: 'working', weight: 70, reps: 12 }, { type: 'working', weight: 70, reps: 12 }]
+  assert.equal(suggestNext(last, [8, 12], false), 72.5)
+  assert.equal(suggestNext(last, [8, 12], false, { step: 5 }), 75)
+  assert.equal(suggestNext(last, [8, 12], false, { step: 5, limit: 72 }), null)
+  assert.equal(suggestNext(last, [8, 12], false, { step: 2, limit: 72 }), 72)
+})

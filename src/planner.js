@@ -156,6 +156,49 @@ export function buildPlan({ equipment, days, minutes, library, familiarity = () 
   }
 }
 
+// Best exercise for one muscle with this equipment, as an accessory.
+export function suggestFor(muscle, { library, equipment, familiarity = () => 0, exclude = [] }) {
+  const skip = new Set(exclude.map(norm))
+  const pool = usablePool(library, equipment).filter(e => !skip.has(norm(e.name)))
+  const e = pick(muscle, 1, { pool, used: new Set(), avoid: new Set(), week: new Set(), familiarity })
+  return e ? prescription(e, 1, false) : null
+}
+
+// Main lifts (marked anchor/compound) get the long rest.
+export const isMainEntry = e => /anchor|compound/i.test(e?.notes || '')
+
+// Minutes a planned exercise takes: ~45 s per set of work, the rest after
+// each set, and a minute to set up.
+export const exerciseMinutes = (e, restSecs) => e.sets * (0.75 + restSecs / 60) + 1
+
+// Time-box a planned day: keep exercises in order (most important first)
+// while they fit. Always keeps the first one.
+export function fitToTime(exercises, minutes, restFor) {
+  const out = []
+  let used = 0
+  for (const e of exercises) {
+    const t = exerciseMinutes(e, restFor(e))
+    if (out.length && used + t > minutes) break
+    out.push(e)
+    used += t
+  }
+  return { exercises: out, minutes: Math.round(used) }
+}
+
+// One swap for a planned day: the muscle furthest under target that the
+// day doesn't train replaces the day's last accessory whose muscle is
+// already on track. null when nothing is far enough behind.
+export function swapIdea(day, { library, equipment, familiarity, behind, muscleOf }) {
+  const trained = new Set(day.exercises.map(e => muscleOf(e.name)))
+  const lag = Object.entries(behind).filter(([m, b]) => b >= 0.5 && !trained.has(m)).sort((a, b) => b[1] - a[1])[0]
+  if (!lag) return null
+  let index = -1
+  day.exercises.forEach((e, i) => { if (!isMainEntry(e) && (behind[muscleOf(e.name)] || 0) < 0.5) index = i })
+  if (index < 0) return null
+  const add = suggestFor(lag[0], { library, equipment, familiarity, exclude: day.exercises.map(e => e.name) })
+  return add ? { muscle: lag[0], index, out: day.exercises[index], in: add } : null
+}
+
 // One short full-body maintenance session. `variant` rotates the template
 // so consecutive holiday days hit muscles in a different order. Balanced on
 // purpose (no catching up on lagging muscles), and paced for ~60 s rests.

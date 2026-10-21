@@ -8,6 +8,7 @@
 import { openModal, confirmBox, toast, esc, icon } from './ui.js'
 import {
   state, saveSession, deleteSessions, sessionById, lastFor, bestFor, isCardio, muscles, routine, latestBw, blobOp, historyFor, queuePhotoDelete,
+  activeGym, gymById, gymLoad, setCap, isMainLift, restFor,
 } from './store.js'
 import { addPhotos, photoImg } from './photos.js'
 import { openGuide } from './guideview.js'
@@ -48,10 +49,12 @@ function rangeFor(name, entry) {
   return null
 }
 
-function makeExercise(name, { entry = null, date = today(), exceptId = null, count = null, values = false } = {}) {
-  const last = lastFor(name, date, exceptId)
+function makeExercise(name, { entry = null, date = today(), exceptId = null, count = null, values = false, gymId = activeGym()?.id || null } = {}) {
+  const last = lastFor(name, date, exceptId, gymId)
   const prev = last ? last.ex.sets.map(s => ({ type: s.type, weight: s.weight, reps: s.reps })) : []
   const range = rangeFor(name, entry)
+  const load = gymLoad(name, gymById(gymId))
+  const top = Math.max(0, ...prev.filter(s => s.type !== 'warmup').map(s => s.weight))
   const n = count ?? entry?.sets ?? (prev.length || 3)
   const sets = Array.from({ length: Math.max(1, n) }, (_, i) => {
     const p = prev[i] || prev.filter(s => s.type !== 'warmup').at(-1)
@@ -60,7 +63,9 @@ function makeExercise(name, { entry = null, date = today(), exceptId = null, cou
   return {
     uid: uid(), name, note: '', hint: entry?.notes || '', range, prev,
     lastDate: last?.date || null,
-    suggest: suggestNext(prev, range, isCardio(name)),
+    suggest: suggestNext(prev, range, isCardio(name), load),
+    atMax: !!(load.limit && top >= load.limit),
+    main: isMainLift(name, entry),
     sets,
   }
 }
@@ -69,7 +74,7 @@ function makeExercise(name, { entry = null, date = today(), exceptId = null, cou
 // `custom` is a picked list of { name, entry } (catch-up sheet, Holiday
 // mode) — not tied to any single routine day, so it gets its own title
 // rather than borrowing one day's.
-export function startWorkout({ dayId = null, fromSessionId = null, custom = null, title = 'Catch-up' } = {}) {
+export function startWorkout({ dayId = null, fromSessionId = null, custom = null, title = 'Catch-up', program = null } = {}) {
   if (live) return resume()
   const day = dayId ? dayById(routine(), dayId) : null
   const src = fromSessionId ? sessionById(fromSessionId) : null
@@ -79,9 +84,10 @@ export function startWorkout({ dayId = null, fromSessionId = null, custom = null
     : []
   live = {
     mode: 'live', id: genId(), date: today(), startedAt: Date.now(),
-    program: custom ? 'Other' : (day?.program || src?.program || 'Other'),
+    program: custom ? (program || 'Other') : (day?.program || src?.program || 'Other'),
     title: custom ? title : (day?.name || ''),
     dayId: day?.id || null,
+    gymId: activeGym()?.id || null,
     notes: '', exercises, rest: null, photos: [],
   }
   persistLive()
@@ -159,7 +165,7 @@ function exerciseCard(e, i, d) {
         ${exThumb(e.name)}
         <div class="wk-ex-title">
           <button type="button" class="wk-ex-name" data-wk="ex-menu">${esc(e.name)}</button>
-          <div class="wk-ex-sub">${mu.primary ? `<span class="mchip">${esc(mu.primary)}</span>` : ''}${e.range ? `<span class="mchip ghost">${e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`} ${isCardio(e.name) ? 'min' : 'reps'}</span>` : ''}${e.suggest ? `<span class="mchip up" title="Every set hit the top of the range last time">${icon('up', 12)} try ${fmtKg(e.suggest)} kg</span>` : ''}</div>
+          <div class="wk-ex-sub">${mu.primary ? `<span class="mchip">${esc(mu.primary)}</span>` : ''}${e.range ? `<span class="mchip ghost">${e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`} ${isCardio(e.name) ? 'min' : 'reps'}</span>` : ''}${e.suggest ? `<span class="mchip up" title="Every set hit the top of the range last time">${icon('up', 12)} try ${fmtKg(e.suggest)} kg</span>` : ''}${e.atMax ? `<span class="mchip max" title="Heaviest weight at this gym">Max here · add reps or slow the lowering</span>` : ''}</div>
         </div>
         <button type="button" class="icon-btn" data-wk="guide" aria-label="How to do ${esc(e.name)}" title="How to">${icon('info')}</button>
         <button type="button" class="icon-btn" data-wk="ex-menu" aria-label="Exercise options">${icon('more')}</button>
@@ -197,7 +203,7 @@ function html(d) {
       <button type="button" class="icon-btn" data-close aria-label="${isLive ? 'Minimise' : 'Close'}">${icon(isLive ? 'down' : 'x')}</button>
       <div class="wk-head-mid">
         <h2>${esc(title)}</h2>
-        <p>${isLive ? `<span class="wk-clock">${clock((Date.now() - d.startedAt) / 1000)}</span> · ` : ''}<span class="wk-count">${doneSets} set${doneSets === 1 ? '' : 's'} logged</span></p>
+        <p>${isLive ? `<span class="wk-clock">${clock((Date.now() - d.startedAt) / 1000)}</span> · ` : ''}${gymById(d.gymId) ? `${esc(gymById(d.gymId).name)} · ` : ''}<span class="wk-count">${doneSets} set${doneSets === 1 ? '' : 's'} logged</span></p>
       </div>
       <button type="button" class="wk-map" data-wk="map" aria-label="Muscles worked so far">${bodyMap(sessionLevels(doneSession(d), muscles).levels, { size: 'xs' })}</button>
       <button type="button" class="btn primary" data-wk="finish">${isLive ? 'Finish' : 'Save'}</button>
@@ -350,7 +356,7 @@ function tick(ex, s, btn) {
       return
     }
     s.done = true
-    if (shown.mode === 'live' && s.type !== 'warmup') startRest(state.prefs.restSecs || 90)
+    if (shown.mode === 'live' && s.type !== 'warmup') startRest(restFor(ex.main))
   } else s.done = false
   save()
   render()
@@ -378,6 +384,7 @@ function exerciseMenu(ex) {
           <button type="button" data-m="note">${icon('note', 18)} ${ex.note || ex.showNote ? 'Edit note' : 'Add note'}</button>
           <button type="button" data-m="guide">${icon('info', 18)} How to do it</button>
           <button type="button" data-m="swap">${icon('swap', 18)} Replace exercise</button>
+          ${activeGym() && !isCardio(ex.name) ? `<button type="button" data-m="cap">${icon('trophy', 18)} ${(c => c ? `Heaviest at ${esc(activeGym().name)}: ${fmtKg(c)} kg` : `Set the heaviest weight at ${esc(activeGym().name)}`)(gymLoad(ex.name).limit)}</button>` : ''}
           ${i > 0 ? `<button type="button" data-m="up">${icon('up', 18)} Move up</button>` : ''}
           ${i < shown.exercises.length - 1 ? `<button type="button" data-m="down">${icon('down', 18)} Move down</button>` : ''}
           <button type="button" data-m="remove" class="danger-text">${icon('trash', 18)} Remove exercise</button>
@@ -389,6 +396,7 @@ function exerciseMenu(ex) {
     if (!a) return
     m.close(true)
     if (a === 'guide') return openGuide(ex.name)
+    if (a === 'cap') return capSheet(ex)
     if (a === 'note') { ex.showNote = true; render(); modal.el.querySelector(`[data-ex="${ex.uid}"] .wk-note`)?.focus(); return }
     if (a === 'up' || a === 'down') { const j = a === 'up' ? i - 1 : i + 1; [shown.exercises[i], shown.exercises[j]] = [shown.exercises[j], shown.exercises[i]] }
     if (a === 'remove') {
@@ -402,6 +410,35 @@ function exerciseMenu(ex) {
       shown.exercises[shown.exercises.indexOf(ex)] = fresh
     }
     save(); render()
+  })
+}
+
+// Heaviest weight this gym has for one exercise (e.g. a machine's full stack).
+function capSheet(ex) {
+  const gym = activeGym()
+  const cur = gymLoad(ex.name).limit
+  const used = Math.max(0, ...ex.sets.map(s => num(s.w)), ...ex.prev.map(s => s.weight))
+  const m = openModal(`
+    <header class="modal-head"><h2>Heaviest at ${esc(gym.name)}</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+    <div class="modal-body">
+      <p class="muted small">For ${esc(ex.name)}. Once you reach it, Iron Log stops suggesting more weight and suggests more reps or a slower lowering instead.</p>
+      <label class="field">Heaviest weight, kg<input id="cap-kg" inputmode="decimal" value="${cur ? esc(fmtKg(cur)) : used ? esc(fmtKg(used)) : ''}" autocomplete="off"></label>
+      <div class="row-end">
+        ${cur ? '<button type="button" class="btn ghost" data-c="clear">Remove</button>' : ''}
+        <button type="button" class="btn primary" data-c="save">Save</button>
+      </div>
+    </div>`, { cls: 'small' })
+  m.el.addEventListener('click', e => {
+    const c = e.target.closest('[data-c]')?.dataset.c
+    if (!c) return
+    const kg = c === 'clear' ? 0 : num(m.el.querySelector('#cap-kg').value)
+    if (c === 'save' && !(kg > 0)) return toast('Enter the heaviest weight in kg')
+    setCap(ex.name, kg)
+    const top = Math.max(0, ...ex.prev.filter(s => s.type !== 'warmup').map(s => s.weight))
+    ex.atMax = !!(kg && top >= kg)
+    if (kg && ex.suggest > kg) ex.suggest = null
+    m.close(true); save(); render()
+    toast(kg ? `Saved: ${fmtKg(kg)} kg max at ${gym.name}` : 'Max removed')
   })
 }
 
@@ -435,6 +472,7 @@ async function finish() {
     photos: d.photos || [],
     createdAt: base.createdAt || d.startedAt || Date.now(),
     ...(d.mode === 'live' ? { startedAt: d.startedAt, source: 'live' } : {}),
+    ...(d.gymId ? { gymId: d.gymId } : {}),
     updatedAt: Date.now(),
   }
   const prs = []

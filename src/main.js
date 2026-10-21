@@ -3,10 +3,14 @@ import { isConfigured } from './config.js'
 import { getSession, onAuthChange, signOut } from './data.js'
 import {
   state, saveDevice, restoreCache, clearLocal, loadAll, flush, setOnChange, setPrefs, blobOp, routine, sortedSessions, achievements,
-  holiday, setHoliday, todaysHoliday,
+  holiday, setHoliday, todaysHoliday, activeGym, setActiveGym, swapFor, restFor, setMeasurement, MEASURES,
 } from './store.js'
+import { editGym, gymChips } from './views/gyms.js'
+import { fitToTime, isMainEntry, exerciseMinutes } from './planner.js'
+import { enableNotify } from './timer.js'
+import { dayById } from './routine.js'
 import { today, addMonths, monthStart, clock, relDay } from './dates.js'
-import { esc, icon, toast, closeTopModal, modalOpen, openModal } from './ui.js'
+import { esc, icon, toast, closeTopModal, modalOpen, openModal, seg } from './ui.js'
 import { applyTheme } from './theme.js'
 import { bodySprite } from './bodymap.js'
 import { initUpdateReload } from './swUpdate.js'
@@ -25,7 +29,8 @@ import { programColor, fmtKg } from './model.js'
 import { resetCharts } from './charts.js'
 import { catchupSuggestions } from './catchup.js'
 
-const STATUS_LABEL = { none: 'Not trained', low: 'Under target', good: 'On target', over: 'Above target' }
+const measurementsAt = d => state.prefs.measure?.[d] || null
+const STATUS_LABEL ={ none: 'Not trained', low: 'Under target', good: 'On target', over: 'Above target' }
 
 const root = document.getElementById('app')
 const PHONE = window.matchMedia('(max-width: 859px)')
@@ -234,6 +239,7 @@ function startSheet() {
   const m = openModal(`
     <header class="modal-head"><h2>Start a workout</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
     <div class="modal-body">
+      ${gymChips('data-g')}
       <div class="start-days">
         ${sortedDays(r).map(d => `<button type="button" class="start-day${d === todayDay ? ' today' : ''}" style="--c:${programColor(d.program)}" data-s="day" data-id="${esc(d.id)}">
           <b>${esc(d.name)}</b><span>${d === todayDay ? 'Today' : d.dow != null ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.dow] : 'Any day'} · ${d.exercises.length} exercises</span></button>`).join('')}
@@ -245,6 +251,12 @@ function startSheet() {
       </div>
     </div>`)
   m.el.addEventListener('click', e => {
+    const g = e.target.closest('[data-g]')
+    if (g) {
+      setActiveGym(g.dataset.value)
+      for (const c of m.el.querySelectorAll('[data-g]')) c.classList.toggle('on', c === g)
+      return render()
+    }
     const b = e.target.closest('[data-s]')
     if (!b) return
     m.close(true)
@@ -254,6 +266,54 @@ function startSheet() {
     else if (k === 'empty') startWorkout({})
     else newSession(today())
   })
+}
+
+// ── Adjust a routine day: gym, time box, lagging-muscle swap ──
+const TIME_OPTIONS = [['0', 'Full'], ['45', '45 min'], ['30', '30 min'], ['20', '20 min']]
+function adjustSheet(dayId) {
+  const day = dayById(routine(), dayId)
+  if (!day) return
+  const v = { minutes: 0, swap: null }
+  const rest = e => restFor(isMainEntry(e))
+  const m = openModal('', { wide: true })
+  const plan = () => {
+    const idea = swapFor(day)
+    const swapOn = idea && v.swap !== false
+    const entries = day.exercises.map((e, i) => swapOn && i === idea.index ? idea.in : e)
+    const fit = v.minutes ? fitToTime(entries, v.minutes, rest) : { exercises: entries, minutes: Math.round(entries.reduce((a, e) => a + exerciseMinutes(e, rest(e)), 0)) }
+    return { idea, swapOn, entries, fit }
+  }
+  const draw = () => {
+    const { idea, swapOn, entries, fit } = plan()
+    const kept = new Set(fit.exercises)
+    m.el.innerHTML = `
+      <header class="modal-head"><h2>${icon('clock', 18)} ${esc(day.name)} today</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+      <div class="modal-body">
+        ${gymChips('data-a')}
+        <label class="setting-label">Time you have</label>
+        ${seg('adj-min', String(v.minutes), TIME_OPTIONS)}
+        ${idea ? `<label class="toggle"><input type="checkbox" id="adj-swap" ${swapOn ? 'checked' : ''}><span>Swap ${esc(idea.out.name)} for ${esc(idea.in.name)} — ${esc(idea.muscle)} is furthest behind this week</span></label>` : ''}
+        <ol class="adj-list">
+          ${entries.map(e => `<li class="${kept.has(e) ? '' : 'skip'}"><span>${esc(e.name)}</span><em>${kept.has(e) ? `${e.sets} × ${esc(e.reps || '—')}` : 'skipped'}</em></li>`).join('')}
+        </ol>
+        <p class="muted small">About ${fit.minutes} min with your rest timers. Exercises run in order of importance, so the ones dropped are the least needed.</p>
+        <div class="row-gap"><button type="button" class="btn primary" data-a="go">${icon('play', 16)} Start ${esc(day.name)}</button></div>
+      </div>`
+  }
+  m.el.addEventListener('click', e => {
+    const s = e.target.closest('[data-act="adj-min"]')
+    if (s) { v.minutes = Number(s.dataset.value); return draw() }
+    const a = e.target.closest('[data-a]')
+    if (!a) return
+    if (a.dataset.a === 'gym') { setActiveGym(a.dataset.value); render(); return draw() }
+    if (a.dataset.a === 'go') {
+      const { fit } = plan()
+      m.close(true)
+      startWorkout({ custom: fit.exercises.map(x => ({ name: x.name, entry: x })), title: day.name, program: day.program })
+    }
+  })
+  m.el.addEventListener('change', e => { if (e.target.id === 'adj-swap') { v.swap = e.target.checked; draw() } })
+  draw()
 }
 
 // ── Catch-up sheet (rest-day suggestions) ──
@@ -351,6 +411,15 @@ root.addEventListener('click', async e => {
     case 'day-new': return editDay(null, render)
     case 'routine-reset': return resetRoutine(render)
     case 'plan-build': return planBuilder(render)
+    case 'day-adjust': return adjustSheet(el.dataset.day)
+    case 'gym-edit': return editGym(value || null, render)
+    case 'gym-active': setActiveGym(value); return render()
+    case 'rest-short': setPrefs({ restShort: Number(value) }); return render()
+    case 'measure-del': {
+      const old = measurementsAt(date)
+      setMeasurement(date, null); render()
+      return toast('Measurement deleted', { label: 'Undo', run: () => { setMeasurement(date, old); render() } })
+    }
     case 'holiday-start':
       return startWorkout({ title: 'Holiday', custom: todaysHoliday().map(e => ({ name: e.name, entry: e })) })
     case 'holiday-off': setHoliday({ on: false }); render(); return toast('Welcome back — routine is back on Today')
@@ -388,12 +457,32 @@ root.addEventListener('change', e => {
   const act = e.target.dataset?.act
   if (act === 'sound' || act === 'wake') saveDevice({ [act]: e.target.checked })
   if (act === 'holiday') { setHoliday({ on: e.target.checked }); render() }
+  if (act === 'notify') {
+    if (!e.target.checked) { saveDevice({ notify: false }); return }
+    enableNotify().then(p => {
+      saveDevice({ notify: p === 'granted' })
+      if (p !== 'granted') toast(p === 'unsupported' ? "This browser can't show notifications" : 'Notifications are blocked — allow them in your browser or system settings')
+      render()
+    })
+  }
 })
 
 root.addEventListener('submit', e => {
   const form = e.target.closest('[data-form]')
   if (!form) return
   e.preventDefault()
+  if (form.dataset.form === 'measure') {
+    const vals = {}
+    for (const [k] of MEASURES) {
+      const n = parseFloat(String(form.elements[k].value).replace(',', '.'))
+      if (n >= 10 && n <= 250) vals[k] = Math.round(n * 10) / 10
+    }
+    if (!Object.keys(vals).length) return toast('Enter at least one measurement in cm')
+    const d = form.elements.d.value || today()
+    setMeasurement(d, { ...(measurementsAt(d) || {}), ...vals })
+    render()
+    return toast('Measurements saved')
+  }
   const w = parseFloat(String(form.elements.w.value).replace(',', '.'))
   if (!(w >= 30 && w <= 250)) { form.elements.w.focus(); return toast('Enter your weight in kg') }
   const d = form.elements.d?.value || today()

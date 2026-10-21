@@ -1,5 +1,5 @@
 import { esc, icon } from '../ui.js'
-import { state, routine, sortedSessions, sessionVol, weekStreak, latestBw, sessionsBetween, holiday, todaysHoliday } from '../store.js'
+import { state, routine, sortedSessions, sessionVol, weekStreak, latestBw, sessionsBetween, holiday, todaysHoliday, activeGym, swapFor } from '../store.js'
 import { dayForDate, sortedDays } from '../routine.js'
 import { today, weekStart, addDays, longDate, DOW_LONG, dow, clock } from '../dates.js'
 import { catchupSuggestions } from '../catchup.js'
@@ -34,8 +34,10 @@ function hero() {
   } else if (day) {
     color = programColor(day.program)
     h = `${esc(day.name)} day`
+    const swap = swapFor(day)
     sub = esc(day.exercises.map(e => e.name).join(' · '))
-    actions = `<button class="btn hero-btn" data-act="start" data-day="${esc(day.id)}">${icon('play', 18)} Start ${esc(day.name)}</button><button class="btn hero-ghost" data-act="start-sheet">Something else</button>`
+      + (swap ? `<span class="hero-swap">${esc(swap.muscle)} is furthest behind this week — swap ${esc(swap.out.name)} for ${esc(swap.in.name)}?</span>` : '')
+    actions = `<button class="btn hero-btn" data-act="start" data-day="${esc(day.id)}">${icon('play', 18)} Start ${esc(day.name)}</button><button class="btn hero-ghost" data-act="day-adjust" data-day="${esc(day.id)}">${icon('clock', 16)} ${swap ? 'Swap or short on time' : 'Short on time?'}</button><button class="btn hero-ghost" data-act="start-sheet">Something else</button>`
   } else {
     h = 'Rest day'
     const next = sortedDays(routine()).find(d => d.dow != null && d.dow > dow(t)) || sortedDays(routine())[0]
@@ -56,7 +58,7 @@ function hero() {
   return `
     <section class="hero" style="--hc:${color}">
       <div class="hero-text">
-        <p class="hero-date">${esc(longDate(t))}</p>
+        <p class="hero-date">${esc(longDate(t))}${activeGym() ? ` · ${esc(activeGym().name)}` : ''}</p>
         <h1>${h}</h1>
         <p class="hero-sub">${sub}</p>
         <div class="hero-actions">${actions}</div>
