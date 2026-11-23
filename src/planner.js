@@ -203,15 +203,50 @@ export function swapIdea(day, { library, equipment, familiarity, behind, muscleO
 // so consecutive holiday days hit muscles in a different order. Balanced on
 // purpose (no catching up on lagging muscles), and paced for ~60 s rests.
 const HOLIDAY_PER_SET = 1.5
-export function holidaySession({ equipment, minutes, library, familiarity = () => 0, variant = 0 }) {
+export function holidaySession({ equipment, minutes, library, familiarity = () => 0, variant = 0, finisher = true }) {
   const pool = usablePool(library, equipment)
   const count = exercisesThatFit(minutes, 2, HOLIDAY_PER_SET)
   const day = (v, avoid) => buildDay(HOLIDAY_TEMPLATES[v % 3], { pool, avoid, familiarity, behind: {}, count, maintain: true })
   const prev = day(variant + 2, new Set())
   const exercises = day(variant, new Set(prev.map(e => norm(e.name))))
-  const cardio = library
+  const cardio = !finisher ? null : library
     .filter(e => !e.hidden && e.muscle === 'Cardio' && hasEquipment(e, equipment))
     .sort((a, b) => familiarity(b.name) - familiarity(a.name) || (b.name === 'Treadmill') - (a.name === 'Treadmill'))[0]
   if (cardio) exercises.push({ name: cardio.name, sets: 1, reps: '10–15', notes: 'Optional finisher — easy incline walk if there\'s time' })
   return exercises
 }
+
+// ── "How long do you have?" ──
+// Which routine day to do now. Not tied to the weekday: the day whose
+// program has gone longest without a session wins (never done = longest), so
+// a week lost to illness resumes at the day that was missed first instead
+// of jumping to whatever today's weekday says. Today's scheduled day gets a
+// small bonus to break ties. `sessions` = [{ date, program }].
+export function pickDay(days, sessions, { today, todayDow, daysBetween }) {
+  let best = null, bestScore = -Infinity
+  for (const d of days) {
+    const last = sessions.filter(s => s.program === d.program).map(s => s.date).sort().pop()
+    const since = last ? daysBetween(last, today) : 30
+    const score = since + (d.dow === todayDow ? 1.5 : 0)
+    if (score > bestScore) { best = d; bestScore = score }
+  }
+  return best
+}
+
+// Coming back after time off: fewer sets and lighter first week. Returns
+// null when the gap is short (under 4 days = normal training).
+export function easeBack(gapDays) {
+  if (!(gapDays >= 4)) return null
+  const heavy = gapDays >= 10
+  return {
+    gapDays,
+    dropSets: 1,
+    pct: heavy ? 20 : 10,
+    note: `Easing back in · start ~${heavy ? 20 : 10}% lighter, stop 2–3 reps short`,
+  }
+}
+
+// Apply ease-back to planned exercises: one set fewer (never below 2) and
+// a note. Returns new objects; the routine itself is untouched.
+export const applyEaseBack = (exercises, eb) => !eb ? exercises
+  : exercises.map(e => ({ ...e, sets: Math.max(2, e.sets - eb.dropSets), notes: [e.notes, eb.note].filter(Boolean).join(' · ') }))

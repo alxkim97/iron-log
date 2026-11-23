@@ -3,13 +3,13 @@ import { isConfigured } from './config.js'
 import { getSession, onAuthChange, signOut } from './data.js'
 import {
   state, saveDevice, restoreCache, clearLocal, loadAll, flush, setOnChange, setPrefs, blobOp, routine, sortedSessions, achievements,
-  holiday, setHoliday, todaysHoliday, activeGym, setActiveGym, swapFor, restFor, setMeasurement, MEASURES,
+  holiday, setHoliday, todaysHoliday, activeGym, setActiveGym, swapFor, restFor, setMeasurement, MEASURES, offDay, setOffDay, quickFullBody,
 } from './store.js'
 import { editGym, gymChips } from './views/gyms.js'
-import { fitToTime, isMainEntry, exerciseMinutes } from './planner.js'
+import { fitToTime, isMainEntry, exerciseMinutes, pickDay, easeBack, applyEaseBack } from './planner.js'
 import { enableNotify } from './timer.js'
 import { dayById } from './routine.js'
-import { today, addMonths, monthStart, clock, relDay } from './dates.js'
+import { today, addMonths, monthStart, clock, relDay, daysBetween, dow } from './dates.js'
 import { esc, icon, toast, closeTopModal, modalOpen, openModal, seg } from './ui.js'
 import { applyTheme } from './theme.js'
 import { bodySprite } from './bodymap.js'
@@ -159,7 +159,7 @@ function desktopShell() {
     <div class="shell desktop">
       <aside class="sidebar">
         <div class="brand">${logo()}<span>Iron Log</span></div>
-        <button class="btn primary block new-btn" data-act="${live ? 'resume' : 'start-sheet'}">${icon('play', 18)} ${live ? 'Resume workout' : 'Start workout'}</button>
+        <button class="btn primary block new-btn" data-act="${live ? 'resume' : 'time-sheet'}">${icon('play', 18)} ${live ? 'Resume workout' : 'Start workout'}</button>
         <nav>
           ${NAV.map(n => `<button class="nav-item${state.view === n.view ? ' on' : ''}" data-act="nav" data-view="${n.view}">${icon(n.icon, 18)}<span>${n.label}</span></button>`).join('')}
         </nav>
@@ -197,7 +197,7 @@ function phoneShell() {
       ${liveBar()}
       <nav class="tabbar">
         ${tabs.map(t => t.add
-          ? `<button class="tab-add${live ? ' live' : ''}" data-act="${live ? 'resume' : 'start-sheet'}" aria-label="${live ? 'Resume workout' : 'Start workout'}">${icon(live ? 'timer' : 'play', 26)}</button>`
+          ? `<button class="tab-add${live ? ' live' : ''}" data-act="${live ? 'resume' : 'time-sheet'}" aria-label="${live ? 'Resume workout' : 'Start workout'}">${icon(live ? 'timer' : 'play', 26)}</button>`
           : `<button class="tab${state.view === t.view || t.also?.includes(state.view) ? ' on' : ''}" data-act="nav" data-view="${t.view}">${icon(t.icon, 22)}<span>${t.label}</span></button>`).join('')}
       </nav>
     </div>`
@@ -266,6 +266,71 @@ function startSheet() {
     else if (k === 'empty') startWorkout({})
     else newSession(today())
   })
+}
+
+// ── "How long do you have?" ──
+// Asks for the time, picks the routine day that's been missed longest
+// (so a stretch off sick resumes where it left off), trims it to fit, and
+// eases the load after 4+ days away. Day chips override the pick.
+const TIME_CHOICES = [['20', '20 min'], ['30', '30 min'], ['45', '45 min'], ['60', '1 hour'], ['90', '1.5 h+']]
+function timeSheet() {
+  const r = routine()
+  const days = sortedDays(r)
+  if (!days.length) return startSheet()
+  const last = sortedSessions()[0]
+  const gap = last ? daysBetween(last.date, today()) : 0
+  const eb = easeBack(gap)
+  const rest = e => restFor(isMainEntry(e))
+  const auto = pickDay(days, sortedSessions(), { today: today(), todayDow: dow(today()), daysBetween })
+  const v = { minutes: 45, dayId: auto?.id, ease: !!eb, mix: false }
+  const m = openModal('', { wide: true })
+  const plan = () => {
+    const mixOn = v.mix && v.minutes <= 30
+    const day = mixOn ? { id: 'mix', name: 'Full-body mix', program: 'Other', exercises: quickFullBody(v.minutes, sortedSessions().length) } : (dayById(r, v.dayId) || days[0])
+    const base = applyEaseBack(day.exercises, v.ease ? eb : null)
+    const fit = v.minutes >= 90
+      ? { exercises: base, minutes: Math.round(base.reduce((a, e) => a + exerciseMinutes(e, rest(e)), 0)) }
+      : fitToTime(base, v.minutes, rest)
+    return { day, fit, base }
+  }
+  const draw = () => {
+    const { day, fit, base } = plan()
+    const kept = new Set(fit.exercises)
+    m.el.innerHTML = `
+      <header class="modal-head"><h2>${icon('clock', 18)} How long do you have?</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+      <div class="modal-body">
+        ${eb ? `<label class="toggle"><input type="checkbox" id="tm-ease" ${v.ease ? 'checked' : ''}><span>${gap} days since your last workout — ease back in (one set fewer, ~${eb.pct}% lighter)</span></label>` : ''}
+        ${seg('tm-min', String(v.minutes), TIME_CHOICES)}
+        ${v.minutes <= 30 ? `<label class="toggle"><input type="checkbox" id="tm-mix" ${v.mix ? 'checked' : ''}><span>Full-body mix — a bit of every big muscle instead of squeezing one day</span></label>` : ''}
+        <label class="setting-label">Workout</label>
+        <div class="start-days">
+          ${days.map(d => `<button type="button" class="start-day${d.id === day.id ? ' today' : ''}" style="--c:${programColor(d.program)}" data-t="day" data-id="${esc(d.id)}"><b>${esc(d.name)}</b><span>${d.id === auto?.id ? 'Suggested — longest since done' : `${d.exercises.length} exercises`}</span></button>`).join('')}
+        </div>
+        <ol class="adj-list">
+          ${base.map(e => `<li class="${kept.has(e) ? '' : 'skip'}"><span>${esc(e.name)}</span><em>${kept.has(e) ? `${e.sets} × ${esc(e.reps || '—')}` : 'skipped'}</em></li>`).join('')}
+        </ol>
+        <p class="muted small">About ${fit.minutes} min with your rest timers. The least important exercises are dropped first.</p>
+        <div class="row-gap"><button type="button" class="btn primary" data-t="go">${icon('play', 16)} Start ${esc(day.name)}</button><button type="button" class="btn ghost" data-t="manual">Pick manually</button></div>
+        <div class="row-gap"><button type="button" class="btn ghost small" data-t="off" data-kind="sick">I'm sick today</button><button type="button" class="btn ghost small" data-t="off" data-kind="rest">Mark day off</button></div>
+      </div>`
+  }
+  m.el.addEventListener('click', e => {
+    const s = e.target.closest('[data-act="tm-min"]')
+    if (s) { v.minutes = Number(s.dataset.value); if (v.minutes <= 20) v.mix = true; return draw() }
+    const b = e.target.closest('[data-t]')
+    if (!b) return
+    if (b.dataset.t === 'day') { v.dayId = b.dataset.id; return draw() }
+    if (b.dataset.t === 'manual') { m.close(true); return startSheet() }
+    if (b.dataset.t === 'off') { m.close(true); setOffDay(today(), b.dataset.kind); return toast(b.dataset.kind === 'sick' ? 'Marked sick — get well soon. Streak is safe.' : 'Marked as a rest day.') }
+    const { day, fit } = plan()
+    m.close(true)
+    startWorkout({ custom: fit.exercises.map(x => ({ name: x.name, entry: x })), title: day.name, program: day.program })
+  })
+  m.el.addEventListener('change', e => {
+    if (e.target.id === 'tm-ease') { v.ease = e.target.checked; draw() }
+    if (e.target.id === 'tm-mix') { v.mix = e.target.checked; draw() }
+  })
+  draw()
 }
 
 // ── Adjust a routine day: gym, time box, lagging-muscle swap ──
@@ -370,6 +435,7 @@ root.addEventListener('click', async e => {
     case 'nav': return setView(view)
     case 'start': return startWorkout({ dayId: el.dataset.day })
     case 'start-sheet': return startSheet()
+    case 'time-sheet': return timeSheet()
     case 'catchup-sheet': return catchupSheet()
     case 'resume': return resume()
     case 'session': return openSessionDetail(id, { onEdit: editSession, onRepeat: sid => startWorkout({ fromSessionId: sid }), rerender: render })
@@ -508,7 +574,7 @@ document.addEventListener('keydown', e => {
   const typing = e.target.closest('input, textarea, select, [contenteditable]')
   if (typing || modalOpen() || e.ctrlKey || e.metaKey || e.altKey || !state.loaded) return
   const keys = {
-    n: () => liveDraft() ? resume() : startSheet(),
+    n: () => liveDraft() ? resume() : timeSheet(),
     '1': () => setView('today'), '2': () => setView('history'), '3': () => setView('progress'),
     '4': () => setView('body'), '5': () => setView('routine'), '6': () => setView('exercises'),
   }

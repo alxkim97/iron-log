@@ -322,6 +322,8 @@ export function lastTrained() {
 export function weekStreak(min = 3) {
   const counts = new Map()
   for (const s of state.sessions) { const w = weekStart(s.date); counts.set(w, (counts.get(w) || 0) + 1) }
+  // Days marked sick / day off count toward their week so time off doesn't break the streak.
+  for (const d of Object.keys(state.prefs.offDays || {})) { const w = weekStart(d); counts.set(w, (counts.get(w) || 0) + 1) }
   let w = weekStart(today())
   if ((counts.get(w) || 0) < min) w = addDays(w, -7)
   let n = 0
@@ -379,6 +381,20 @@ export function setMeasurement(date, values) {
   if (values) all[date] = values
   else delete all[date]
   setPrefs({ measure: all })
+}
+
+// Days off logged on purpose ('sick' or 'rest'), keyed by date.
+export const offDay = date => (state.prefs.offDays || {})[date] || null
+export function setOffDay(date, kind) {
+  const all = { ...(state.prefs.offDays || {}) }
+  if (kind) all[date] = kind
+  else delete all[date]
+  setPrefs({ offDays: all })
+}
+
+// A short full-body mix for a time-boxed day: balanced across muscles, 2 sets each.
+export function quickFullBody(minutes, variant = 0) {
+  return holidaySession({ ...planContext(), equipment: gymEquipment(), minutes, variant, finisher: false })
 }
 
 // ── Plan builder / Holiday mode ──

@@ -37,7 +37,7 @@ function hero() {
     const swap = swapFor(day)
     sub = esc(day.exercises.map(e => e.name).join(' · '))
       + (swap ? `<span class="hero-swap">${esc(swap.muscle)} is furthest behind this week — swap ${esc(swap.out.name)} for ${esc(swap.in.name)}?</span>` : '')
-    actions = `<button class="btn hero-btn" data-act="start" data-day="${esc(day.id)}">${icon('play', 18)} Start ${esc(day.name)}</button><button class="btn hero-ghost" data-act="day-adjust" data-day="${esc(day.id)}">${icon('clock', 16)} ${swap ? 'Swap or short on time' : 'Short on time?'}</button><button class="btn hero-ghost" data-act="start-sheet">Something else</button>`
+    actions = `<button class="btn hero-btn" data-act="time-sheet">${icon('clock', 18)} How long do you have?</button><button class="btn hero-ghost" data-act="start" data-day="${esc(day.id)}">Start ${esc(day.name)}</button><button class="btn hero-ghost" data-act="day-adjust" data-day="${esc(day.id)}">${icon('clock', 16)} ${swap ? 'Swap or short on time' : 'Short on time?'}</button><button class="btn hero-ghost" data-act="start-sheet">Something else</button>`
   } else {
     h = 'Rest day'
     const next = sortedDays(routine()).find(d => d.dow != null && d.dow > dow(t)) || sortedDays(routine())[0]
@@ -47,7 +47,7 @@ function hero() {
       : `Recover well.${next ? ` Next up: ${esc(next.name)} on ${DOW_LONG[next.dow] || 'any day'}.` : ''}`
     actions = missed
       ? `<button class="btn hero-btn" data-act="catchup-sheet">${icon('repeat', 18)} Catch-up</button><button class="btn hero-ghost" data-act="start-sheet">Something else</button>`
-      : `<button class="btn hero-btn" data-act="start-sheet">${icon('play', 18)} Train anyway</button>`
+      : `<button class="btn hero-btn" data-act="time-sheet">${icon('play', 18)} Train anyway</button>`
   }
   const ws = weekStart(t)
   const week = sessionsBetween(ws, addDays(ws, 6))

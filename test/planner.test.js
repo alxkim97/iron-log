@@ -126,3 +126,24 @@ test('weight suggestion uses the gym step and stops at its heaviest', () => {
   assert.equal(suggestNext(last, [8, 12], false, { step: 5, limit: 72 }), null)
   assert.equal(suggestNext(last, [8, 12], false, { step: 2, limit: 72 }), 72)
 })
+
+import { pickDay, easeBack, applyEaseBack } from '../src/planner.js'
+const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000)
+
+test('pickDay resumes at the day missed longest, not the weekday', () => {
+  const days = [{ program: 'Push', dow: 0 }, { program: 'Pull', dow: 2 }, { program: 'Legs', dow: 3 }]
+  const sessions = [{ date: '2026-11-15', program: 'Push' }, { date: '2026-11-16', program: 'Pull' }]
+  const d = pickDay(days, sessions, { today: '2026-11-23', todayDow: 1, daysBetween: dayDiff })
+  assert.equal(d.program, 'Legs') // never done
+  const d2 = pickDay(days, [...sessions, { date: '2026-11-18', program: 'Legs' }], { today: '2026-11-23', todayDow: 1, daysBetween: dayDiff })
+  assert.equal(d2.program, 'Push') // oldest
+})
+
+test('easeBack only after 4+ days off and never drops below 2 sets', () => {
+  assert.equal(easeBack(3), null)
+  assert.equal(easeBack(5).pct, 10)
+  assert.equal(easeBack(12).pct, 20)
+  const out = applyEaseBack([{ name: 'A', sets: 3, notes: '' }, { name: 'B', sets: 2, notes: 'x' }], easeBack(5))
+  assert.deepEqual(out.map(e => e.sets), [2, 2])
+  assert.match(out[1].notes, /^x · Easing back/)
+})
