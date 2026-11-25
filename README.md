@@ -62,3 +62,27 @@ Until this runs, the routine and settings are kept on each device separately
 
 Retire v1 once v2 is in use: v1 pushes its whole local copy back to the cloud,
 so a session deleted in v2 would come back if v1 is still running somewhere.
+
+## Claude access (v2.6.0)
+
+Same model as Coin: Claude works through its **own helper account** (the Coin
+one works — same Supabase project), never your login.
+
+1. Settings → Claude access → **Copy SQL**, run it once in Supabase (lifelog →
+   SQL Editor), tap **I ran it**. The SQL is in `src/claudeAccess.js`.
+2. Enter the helper account's email → **Connect**. It can now *read* sessions,
+   routine/settings, body weight and check-ins.
+3. Run `node scripts/save-session.js` **yourself** and sign in as the helper
+   (it refuses an account with its own workouts). Saves `.iron-session.json`
+   (gitignored) — delete it or Disconnect to revoke.
+4. To let Claude change things, open **Direct editing** for 1 hour / rest of
+   today / 24 hours. Only sessions and the routine are writable (the routine
+   through the `iron_set_routine` function, never the rest of your settings);
+   after the window the database refuses the writes.
+
+Every change shows under Claude activity with **Undo**. Tap *Load Claude's
+changes* (or reopen the app) to see them on this device.
+
+Claude's side: `node scripts/iron-claude.js status | export | sessions |
+session <id> | put-session <file> | delete-session <id> | routine |
+set-routine <file>`.

@@ -12,6 +12,7 @@ import { dayById } from './routine.js'
 import { today, addMonths, monthStart, clock, relDay, daysBetween, dow } from './dates.js'
 import { esc, icon, toast, closeTopModal, modalOpen, openModal, seg } from './ui.js'
 import { applyTheme } from './theme.js'
+import { mountClaudeAccess } from './claudeAccess.js'
 import { bodySprite } from './bodymap.js'
 import { initUpdateReload } from './swUpdate.js'
 import { renderAuth, logo } from './views/auth.js'
@@ -219,6 +220,7 @@ function render() {
     const inp = root.querySelector(`[data-input="${focusKey}"]`)
     if (inp) { inp.focus(); try { inp.setSelectionRange(caret, caret) } catch {} }
   }
+  mountClaudeAccess({ reload: load })
 }
 PHONE.addEventListener('change', render)
 

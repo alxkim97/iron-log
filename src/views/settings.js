@@ -4,6 +4,7 @@ import { timeAgo } from '../dates.js'
 import { MUSCLES } from '../model.js'
 import { EQUIPMENT } from '../planner.js'
 import { gymsCard } from './gyms.js'
+import { claudeAccessCard } from '../claudeAccess.js'
 
 export const PREFS_SQL = `create table if not exists iron_prefs (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -119,6 +120,8 @@ export function renderSettings({ isPhone }) {
           <button class="btn soft" data-act="export-hevy">${icon('download', 16)} For HEVY (.csv)</button>
         </div>
       </section>
+
+      ${claudeAccessCard()}
 
       <section class="card">
         <header class="card-head"><h2>${icon('sync', 18)} Account</h2></header>
